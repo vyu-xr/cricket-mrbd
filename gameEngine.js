@@ -53,6 +53,7 @@ class GameEngine {
         this.hasHit          = false;
         this.level           = 1;
         this.isSmashing      = false;
+        this.pendingRuns     = 0;
 
         // Bat state
         this.batMesh         = null;
@@ -143,20 +144,17 @@ class GameEngine {
         if (this.level <= 2) {
             if (r < 0.65) return DELIVERY.GOOD_LENGTH;
             if (r < 0.85) return DELIVERY.FULL_TOSS;
-            if (r < 0.95) return DELIVERY.YORKER;
-            return DELIVERY.WIDE; // 5%
+            return DELIVERY.YORKER;
         } else if (this.level <= 4) {
             if (r < 0.45) return DELIVERY.GOOD_LENGTH;
-            if (r < 0.68) return DELIVERY.YORKER;
-            if (r < 0.85) return DELIVERY.BOUNCER;
-            if (r < 0.95) return DELIVERY.FULL_TOSS;
-            return DELIVERY.WIDE; // 5%
+            if (r < 0.75) return DELIVERY.YORKER;
+            if (r < 0.90) return DELIVERY.BOUNCER;
+            return DELIVERY.FULL_TOSS;
         } else {
             if (r < 0.35) return DELIVERY.GOOD_LENGTH;
-            if (r < 0.60) return DELIVERY.BOUNCER;
-            if (r < 0.80) return DELIVERY.YORKER;
-            if (r < 0.95) return DELIVERY.FULL_TOSS;
-            return DELIVERY.WIDE; // 5%
+            if (r < 0.65) return DELIVERY.BOUNCER;
+            if (r < 0.85) return DELIVERY.YORKER;
+            return DELIVERY.FULL_TOSS;
         }
     }
 
@@ -167,23 +165,20 @@ class GameEngine {
         this.isSmashing  = false;
         this.rolling     = false;
         this.bounceCount = 0;
-        this.hitTimer    = 0;
+        this.pendingRuns = 0;
         this.deliveryType = this._chooseDelivery();
 
-        const spawnX  = (Math.random() * 2 - 1) * 0.08;
+        const spawnX  = 0.0; // Strictly centered spawn
         const spawnZ  = this.bowlerZ + 0.05;
         const pitchLen = this.stumpsZ - spawnZ;   // total pitch length in Z
-        const baseSpeed = 4.0 + this.level * 0.35; // slowed delivery — more reaction time
+        const baseSpeed = 5.2 + this.level * 0.35; // slowed delivery for better reaction time
 
-        // Vary target line across 5 realistic cricket bowling lines strictly on pitch:
-        // Outside Off (+0.24), Off Stump (+0.12), Middle (0.0), Leg Stump (-0.12), Down Leg (-0.24)
-        const cricketLines = [0.24, 0.12, 0.0, -0.12, -0.24];
+        // Target line with 0.20 spread on off and leg sides:
+        const cricketLines = [0.20, 0.10, 0.0, -0.10, -0.20];
         const baseLine = cricketLines[Math.floor(Math.random() * cricketLines.length)];
-        const lineJitter = (Math.random() * 2 - 1) * 0.04;
+        const lineJitter = (Math.random() * 2 - 1) * 0.02;
 
-        const targetX = this.deliveryType === DELIVERY.WIDE
-            ? (Math.random() > 0.5 ? 1 : -1) * (0.45 + Math.random() * 0.05)
-            : baseLine + lineJitter;
+        const targetX = baseLine + lineJitter;
         const dx = targetX - spawnX;
 
         let spawnY, velX, velY, velZ;
@@ -400,7 +395,7 @@ class GameEngine {
                                  && pos.z > -this.pitchHalfLength
                                  && pos.z < this.stumpsZ + 0.15;
 
-                    if (onPitch) {
+                    if (onPitch && !this.hasHit) {
                         // Seam / spin effects on bounce
                         this.ballVelocity.x = this.ballVelocity.x * PITCH_FRICTION_X + this.ballSpin.x * 0.10;
                         this.ballVelocity.z = this.ballVelocity.z * PITCH_FRICTION_Z;
@@ -409,13 +404,17 @@ class GameEngine {
                         this.ballSpin.multiplyScalar(SPIN_DECAY);
                         this.hasBounced = true;
                         this.bounceCount++;
+                    } else if (this.hasHit) {
+                        // High velocity retention post-hit
+                        this.ballVelocity.x *= 0.94;
+                        this.ballVelocity.z *= 0.94;
                     } else {
                         // Outfield — softer bounce
                         this.ballVelocity.x *= 0.68;
                         this.ballVelocity.z *= 0.72;
                     }
 
-                    if (vyOut < MIN_BOUNCE_VY) {
+                    if (vyOut < MIN_BOUNCE_VY && !this.hasHit) {
                         // Transition to rolling
                         this.ballVelocity.y = 0;
                         this.rolling = true;
@@ -447,8 +446,9 @@ class GameEngine {
                     return;
                 }
 
-                // Gradual deceleration
-                const decel = Math.max(0, 1 - (ROLL_DECEL / hSpeed) * step);
+                // Gradual deceleration (much lower deceleration when hit)
+                const activeDecel = this.hasHit ? 0.4 : ROLL_DECEL;
+                const decel = Math.max(0, 1 - (activeDecel / hSpeed) * step);
                 this.ballVelocity.x *= decel;
                 this.ballVelocity.z *= decel;
                 pos.x += this.ballVelocity.x * step;
@@ -456,9 +456,11 @@ class GameEngine {
             }
         }
 
-        // ── Clamp ball position strictly to pitch boundary limits ───────────
-        pos.x = Math.max(-0.75, Math.min(0.75, pos.x));
-        pos.z = Math.max(-2.95, Math.min(2.95, pos.z));
+        // ── Clamp ball position strictly to pitch boundary limits (BEFORE HIT ONLY) ──
+        if (!this.hasHit) {
+            pos.x = Math.max(-0.75, Math.min(0.75, pos.x));
+            pos.z = Math.max(-2.95, Math.min(2.95, pos.z));
+        }
 
         // ── Bat hit detection (tight impact area on bat blade) ────────────────
         if (!this.hasHit) {
@@ -467,7 +469,7 @@ class GameEngine {
             const dy  = pos.y - (bp.y + 0.25); // center hit check on bat blade
             const dz  = pos.z - bp.z;
 
-            if (Math.abs(dx) < 0.18 && Math.abs(dz) < 0.18 && Math.abs(dy) < 0.22) {
+            if (Math.abs(dx) < 0.22 && Math.abs(dz) < 0.22 && Math.abs(dy) < 0.25) {
                 this.hasHit  = true;
                 this.rolling = false;
                 this.hitTimer = 0;
@@ -489,31 +491,19 @@ class GameEngine {
                 return;
             }
 
-            // 2. Check if delivery is WIDE
-            const isWide = this.deliveryType === DELIVERY.WIDE || Math.abs(pos.x) > 0.42 || pos.y > 2.0;
-            if (isWide) {
-                this.onWide();
-                return;
-            }
-
-            // 3. Legal delivery missed by batsman -> DOT BALL
+            // 2. Legal delivery missed by batsman -> DOT BALL
             this._onDotBall();
             return;
         }
 
-        // ── Post-hit resolution & pitch clamping ──────────────────────────────
+        // ── Post-hit resolution (allow ball to fly freely outside pitch & POV) ──────
         if (this.hasHit) {
             this.hitTimer += dt;
-            const pastBowler = pos.z < this.bowlerZ + 0.2;
-            const atSide     = Math.abs(pos.x) > 0.68;
-            const isTimeout  = this.hitTimer > 1.2;
+            const isFarOut = pos.z < -25.0 || pos.y > 18.0 || pos.y < -5.0 || Math.abs(pos.x) > 18.0;
+            const isFlightFinished = this.hitTimer > 2.5 || isFarOut;
 
-            if (pastBowler || atSide || isTimeout || this.rolling) {
-                pos.x = Math.max(-0.75, Math.min(0.75, pos.x));
-                pos.z = Math.max(-2.95, Math.min(2.95, pos.z));
-                pos.y = Math.max(0.05, Math.min(1.5, pos.y));
-                this.ballMesh.position.copy(pos);
-                this.onRuns(this._calcRuns(pos));
+            if (isFlightFinished) {
+                this.onRuns(this.pendingRuns || 1);
                 return;
             }
         }
@@ -538,22 +528,42 @@ class GameEngine {
         const swY = this.batSpeed.y;
         const swingMag = Math.sqrt(swX * swX + swY * swY);
 
-        this.isSmashing = swingMag > 1.5;
+        this.isSmashing = swingMag > 1.2 || Math.abs(swY) > 1.0;
 
-        let hitPower = 5.0 + swingMag * 0.75;
-        hitPower = Math.min(hitPower, 10.5);
+        let hitPower = 35.0 + swingMag * 14.0;
+        if (this.isSmashing) hitPower += 30.0;
+        hitPower = Math.min(hitPower, 110.0);
 
         // Direction mostly back toward bowler, modulated by lateral swing
-        let dirX = swX * 0.60 + (Math.random() - 0.5) * 0.22;
-        let dirZ = -(0.85 + Math.random() * 0.15);
-        let dirY = 0.32 + Math.max(0, swY) * 0.55;
-        if (this.isSmashing) { dirY += 0.5; hitPower = Math.min(hitPower + 1.5, 11.0); }
+        let dirX = swX * 1.5 + (Math.random() - 0.5) * 0.40;
+        let dirZ = -(1.5 + Math.random() * 0.40);
+        let dirY = 0.25 + Math.max(0, swY) * 1.5;
+        if (this.isSmashing) dirY += 1.2;
 
         const mag = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
+        const normY = dirY / mag;
+
+        // ── Calculate runs based on trajectory & power ────────────────────────
+        if ((normY > 0.38 && hitPower > 40.0) || (this.isSmashing && hitPower > 50.0)) {
+            this.pendingRuns = 6;
+        } else if (hitPower > 32.0 || (normY > 0.15 && hitPower > 25.0)) {
+            this.pendingRuns = 4;
+        } else if (hitPower > 20.0) {
+            this.pendingRuns = 2;
+        } else {
+            this.pendingRuns = 1;
+        }
+
+        // Fours and ground hits stay low to the ground (hug pitch surface)
+        if (this.pendingRuns === 4 || this.pendingRuns <= 2) {
+            dirY = Math.min(0.20, dirY);
+        }
+
+        const newMag = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
         this.ballVelocity.set(
-            (dirX / mag) * hitPower,
-            (dirY / mag) * hitPower,
-            (dirZ / mag) * hitPower
+            (dirX / newMag) * hitPower,
+            (dirY / newMag) * hitPower,
+            (dirZ / newMag) * hitPower
         );
 
         // Clear swing / spin effects after bat contact

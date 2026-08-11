@@ -422,7 +422,7 @@ let batBaseY = 0, batTargetY = 0;
 
 const BAT_LIMIT_X = 0.6;
 const BAT_LIMIT_Y = 0.5;
-const BAT_SPEED   = 0.045; // increased sensitivity — moves ~2× faster per D-pad tick
+const BAT_SPEED   = 0.1; // much higher sensitivity
 
 let phoneActive = false;
 let phoneRotX = 0, phoneRotY = 0, phoneRotZ = 0;
@@ -492,7 +492,7 @@ loader.load(
 
 // ── Keyboard & D-Pad Navigation (MRBD Specs) ──────────────────────────────────
 const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
-const DPAD_STEP = 0.12;
+const DPAD_STEP = 0.25;
 
 function getFocusableElements() {
     const visibleDialog  = document.querySelector('#exclusive-dialog:not(.hidden)');
@@ -705,29 +705,24 @@ class MobileController {
 
         // REALISTIC CRICKET BAT MOTION MAPPING:
         // 1. Guard Position across crease (X):
-        //    Moving phone side to side (dGamma) gently shifts bat target X within [-0.40, +0.40]
-        const targetXOffset = Math.max(-0.40, Math.min(0.40, (dGamma / 40.0) * 0.40));
+        const targetXOffset = Math.max(-0.60, Math.min(0.60, (dGamma / 12.0) * 0.60));
         batTargetX = batBaseX + targetXOffset;
 
         // 2. Vertical Height & Backlift (Y):
-        //    Tilting phone backward (dBeta < 0) lifts bat up for backlift/high shots
-        const targetYOffset = Math.max(-0.02, Math.min(0.55, (-dBeta / 35.0) * 0.50));
+        const targetYOffset = Math.max(-0.02, Math.min(0.65, (-dBeta / 12.0) * 0.60));
         batTargetY = batBaseY + targetYOffset;
 
         // 3. Bat Backlift & Swing Pitch (RotX):
-        //    Natural stance is -PI/6 (~ -30 deg). Tilting phone back raises backlift angle.
-        const pitchRad = THREE.MathUtils.degToRad(-dBeta) * 0.65;
-        phoneRotX = (-Math.PI / 6) + Math.max(-Math.PI / 3, Math.min(Math.PI / 4, pitchRad));
+        const pitchRad = THREE.MathUtils.degToRad(-dBeta) * 1.6;
+        phoneRotX = (-Math.PI / 6) + Math.max(-Math.PI / 2.2, Math.min(Math.PI / 3, pitchRad));
 
         // 4. Bat Face Shot Direction (RotY):
-        //    Twisting wrist/phone left or right turns bat face toward Cover or Mid-wicket
-        const yawRad = THREE.MathUtils.degToRad(dAlpha) * 0.60;
-        phoneRotY = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, yawRad));
+        const yawRad = THREE.MathUtils.degToRad(dAlpha) * 1.6;
+        phoneRotY = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, yawRad));
 
         // 5. Wrist Tilt / Roll (RotZ):
-        //    Capped to prevent unnatural upside-down flipping
-        const rollRad = THREE.MathUtils.degToRad(-dGamma) * 0.35;
-        phoneRotZ = Math.max(-Math.PI / 6, Math.min(Math.PI / 6, rollRad));
+        const rollRad = THREE.MathUtils.degToRad(-dGamma) * 1.0;
+        phoneRotZ = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, rollRad));
     }
 
     _updatePadUI(connected) {
@@ -858,12 +853,12 @@ function animate(currentTime = 0) {
             if (keys.ArrowUp)    batTargetY = Math.min(batBaseY + BAT_LIMIT_Y, batTargetY + BAT_SPEED);
             if (keys.ArrowDown)  batTargetY = Math.max(0.0, batTargetY - BAT_SPEED);
         }
-        const newX = bat.position.x + (batTargetX - bat.position.x) * 0.28; // faster lerp follow
-        const newY = bat.position.y + (batTargetY - bat.position.y) * 0.28;
+        const newX = bat.position.x + (batTargetX - bat.position.x) * 0.95; // instant zero-lag follow
+        const newY = bat.position.y + (batTargetY - bat.position.y) * 0.95;
         gameEngine.setPaddlePosition(newX, newY, bat.position.z);
 
         if (phoneActive) {
-            const lerpSpeed = 0.16;
+            const lerpSpeed = 0.90; // zero-lag rotation tracking
             bat.rotation.x = bat.rotation.x + (phoneRotX - bat.rotation.x) * lerpSpeed;
             bat.rotation.y = bat.rotation.y + (phoneRotY - bat.rotation.y) * lerpSpeed;
             bat.rotation.z = bat.rotation.z + (phoneRotZ - bat.rotation.z) * lerpSpeed;

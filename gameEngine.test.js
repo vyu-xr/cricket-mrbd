@@ -87,13 +87,14 @@ describe('Cricket GameEngine 1-Over Target Chase Logic', () => {
         jest.useRealTimers();
     });
 
-    test('Clamps ball position to field boundaries post-hit', () => {
+    test('Allows unconstrained ball flight out of bounds post-hit', () => {
         gameEngine.ballActive = true;
         gameEngine.hasHit = true;
-        const outOfBoundsPos = new THREE.Vector3(10.0, 10.0, 10.0);
-        gameEngine.ballMesh.position.copy(outOfBoundsPos);
+        gameEngine.hitTimer = 0;
+        gameEngine.ballVelocity.set(0, 5, -30);
+        const outPos = new THREE.Vector3(0.0, 1.0, -5.0);
+        gameEngine.ballMesh.position.copy(outPos);
         gameEngine.update(0.016);
-        expect(Math.abs(gameEngine.ballMesh.position.x)).toBeLessThanOrEqual(0.75);
-        expect(Math.abs(gameEngine.ballMesh.position.z)).toBeLessThanOrEqual(2.95);
+        expect(gameEngine.ballMesh.position.z).toBeLessThan(-5.0);
     });
 });
