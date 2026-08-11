@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>🏏 Cricket Bat Controller</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html { font-size: 20px; }
+    body, div, span, p, a, button, input, select, textarea, label, strong, em, small, code, pre { font-size: 20px; }
+    :root {
+      --purple:#a78bfa; --blue:#60a5fa; --green:#34d399;
+      --orange:#fb923c; --red:#f87171; --bg:#07080f;
+      --surface:rgba(255,255,255,0.05); --border:rgba(255,255,255,0.10);
+    }
+    html,body { width:100%; height:100%; background:var(--bg); color:#fff;
+      font-family:'Outfit',sans-serif; overflow:hidden;
+      user-select:none; -webkit-user-select:none; touch-action:none; }
+
+    /* ── Screens ─────────────────────────────────────────────────── */
+    .screen { position:fixed; inset:0; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:24px;
+      transition:opacity .4s ease, transform .4s ease; }
+    .screen.hidden { opacity:0; pointer-events:none; transform:scale(.95); }
+
+    /* ── Permission Screen ──────────────────────────────────────── */
+    #perm-screen {
+      background:radial-gradient(ellipse at 50% 30%,rgba(167,139,250,.18) 0%,transparent 70%),var(--bg);
+    }
+    .perm-icon { font-size:80px; filter:drop-shadow(0 0 24px rgba(167,139,250,.6)); }
+    .perm-title { font-size:26px; font-weight:800; text-align:center; }
+    .perm-sub { font-size:20px; color:rgba(255,255,255,.5); text-align:center;
+      max-width:320px; line-height:1.6; }
+    #enable-btn {
+      padding:18px 44px;
+      background:linear-gradient(135deg,var(--purple),var(--blue));
+      border:none; border-radius:100px; color:#fff;
+      font-family:'Outfit',sans-serif; font-size:20px; font-weight:700;
+      cursor:pointer; box-shadow:0 0 40px rgba(167,139,250,.4);
+      transition:transform .15s, box-shadow .15s; }
+    #enable-btn:active { transform:scale(.95); }
+    #enable-btn:disabled { opacity:.5; cursor:default; }
+
+    /* ── Error Screen ────────────────────────────────────────────── */
+    #error-screen { gap:16px; padding:32px; text-align:center; }
+    .error-icon { font-size:56px; }
+    .error-title { font-size:22px; font-weight:800; color:var(--red); }
+    .error-msg { font-size:20px; color:rgba(255,255,255,.55); max-width:340px; line-height:1.6; }
+    .error-code { font-family:monospace; font-size:20px; padding:10px 14px;
+      background:rgba(255,255,255,.05); border-radius:10px;
+      color:var(--orange); max-width:340px; word-break:break-all; }
+    #retry-btn { padding:14px 34px;
+      background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2);
+      border-radius:100px; color:#fff; font-family:'Outfit',sans-serif;
+      font-size:20px; font-weight:600; cursor:pointer; }
+
+    /* ── Controller Screen ──────────────────────────────────────── */
+    #ctrl-screen { justify-content:space-between; padding:20px 20px 24px; opacity:0; }
+    #ctrl-screen.visible { opacity:1; }
+
+    /* Status bar */
+    .status-bar { display:flex; align-items:center; justify-content:space-between;
+      width:100%; max-width:380px; }
+    .status-pill { display:flex; align-items:center; gap:8px;
+      padding:8px 16px; background:var(--surface);
+      border:1px solid var(--border); border-radius:100px;
+      font-size:20px; font-weight:600; }
+    .status-dot { width:8px; height:8px; border-radius:50%;
+      background:var(--red); box-shadow:0 0 8px var(--red);
+      transition:background .3s, box-shadow .3s; }
+    .status-dot.ok { background:var(--green); box-shadow:0 0 8px var(--green); }
+    .status-dot.warn { background:var(--orange); box-shadow:0 0 8px var(--orange); }
+
+    .smash-badge { padding:8px 16px;
+      background:rgba(251,146,60,.15); border:1px solid rgba(251,146,60,.3);
+      border-radius:100px; font-size:20px; font-weight:700;
+      color:var(--orange); opacity:0; transition:opacity .2s; }
+    .smash-badge.active { opacity:1; }
+
+    .calib-btn {
+      padding:10px 24px;
+      background:linear-gradient(135deg,rgba(167,139,250,0.25),rgba(96,165,250,0.25));
+      border:1px solid rgba(167,139,250,0.4); border-radius:100px;
+      color:#fff; font-family:'Outfit',sans-serif; font-size:20px; font-weight:700;
+      cursor:pointer; box-shadow:0 4px 15px rgba(0,0,0,0.3);
+      transition:transform .15s, background .2s, border-color .2s; }
+    .calib-btn:active { transform:scale(.94); }
+    .calib-btn.flash { background:rgba(52,211,153,0.4); border-color:var(--green); }
+
+    /* 3D Cricket Bat */
+    .bat-scene { flex:1; display:flex; align-items:center; justify-content:center;
+      perspective:600px; width:100%; margin:10px 0; }
+    .bat-wrap { transform-style:preserve-3d; transition:transform 0.05s linear; }
+    .bat-handle { width:18px; height:70px;
+      background:linear-gradient(180deg,#1e293b 0%,#0f172a 100%);
+      border-radius:9px 9px 4px 4px; margin:0 auto;
+      box-shadow:inset 0 0 6px rgba(255,255,255,0.2), 0 4px 10px rgba(0,0,0,0.5);
+      position:relative; z-index:2; }
+    .bat-handle::after { content:''; position:absolute; inset:4px 1px;
+      background:repeating-linear-gradient(0deg,transparent,transparent 4px,
+        rgba(255,255,255,.15) 4px,rgba(255,255,255,.15) 5px); }
+    .bat-face {
+      width:68px; height:140px;
+      background:linear-gradient(180deg,#e2b474 0%,#d2a15f 70%,#be8d4b 100%);
+      border-radius:6px 6px 16px 16px;
+      box-shadow:0 6px 20px rgba(0,0,0,.6), inset 0 0 12px rgba(0,0,0,.2);
+      transform-style:preserve-3d; position:relative; margin:-4px auto 0;
+      border:1px solid #b28242; }
+    .bat-face::before { content:''; position:absolute; inset:6px;
+      background:repeating-linear-gradient(90deg,transparent,transparent 8px,rgba(140,90,40,.15) 8px,rgba(140,90,40,.15) 9px);
+      border-radius:4px 4px 12px 12px; }
+    .bat-face::after { content:'CRICKET'; position:absolute; top:22px; left:50%;
+      transform:translateX(-50%); font-weight:900; font-size:20px; letter-spacing:2px;
+      color:#b91c1c; opacity:0.85; text-shadow:0 1px 2px rgba(255,255,255,0.4); }
+
+    /* Meters */
+    .meters { display:grid; grid-template-columns:1fr 1fr 1fr;
+      gap:12px; width:100%; max-width:420px; }
+    .meter-card { background:var(--surface); border:1px solid var(--border);
+      border-radius:16px; padding:12px 10px; text-align:center; }
+    .meter-label { font-size:20px; font-weight:600; letter-spacing:.08em;
+      color:rgba(255,255,255,.4); text-transform:uppercase; margin-bottom:6px; }
+    .meter-value { font-size:22px; font-weight:800; letter-spacing:-.5px;
+      font-variant-numeric:tabular-nums; }
+    .meter-bar-bg { margin-top:6px; height:3px; background:rgba(255,255,255,.08);
+      border-radius:2px; overflow:hidden; }
+    .meter-bar-fill { height:100%; border-radius:2px;
+      transition:width .05s linear, margin-left .05s linear; }
+
+    /* Game status toast */
+    #game-toast {
+      position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+      background:rgba(251,146,60,.15); border:1px solid rgba(251,146,60,.3);
+      border-radius:100px; padding:8px 20px;
+      font-size:20px; font-weight:600; color:var(--orange);
+      white-space:nowrap;
+      opacity:0; transition:opacity .3s ease; pointer-events:none; }
+    #game-toast.visible { opacity:1; }
+
+    /* Serve hint */
+    .serve-hint { font-size:20px; color:rgba(255,255,255,.35);
+      animation:pulse-hint 2.5s ease-in-out infinite; }
+    @keyframes pulse-hint { 0%,100%{opacity:.35} 50%{opacity:.8} }
+
+    /* Swipe flash */
+    #swipe-flash { position:fixed; inset:0; background:rgba(251,146,60,.12);
+      pointer-events:none; opacity:0; transition:opacity .1s; }
+    #swipe-flash.active { opacity:1; }
+
+    /* Debug panel */
+    #debug-panel { position:fixed; bottom:0; left:0; right:0;
+      background:rgba(0,0,0,.85); border-top:1px solid rgba(255,255,255,.08);
+      padding:10px 16px; font-family:monospace; font-size:20px;
+      color:rgba(255,255,255,.5); line-height:1.8;
+      display:none; }
+    #debug-panel.visible { display:block; }
+  </style>
+</head>
+<body>
+
+  <!-- Permission Screen -->
+  <div class="screen" id="perm-screen">
+    <div class="perm-icon">🏓</div>
+    <div class="perm-title">Your Phone is<br/>the Bat</div>
+    <div class="perm-sub">Hold like a paddle, tilt to move, flick to smash. Tap to serve.</div>
+    <button id="enable-btn">Enable Sensors</button>
+  </div>
+
+  <!-- Error Screen (HTTPS / sensor blocked) -->
+  <div class="screen hidden" id="error-screen">
+    <div class="error-icon">🔒</div>
+    <div class="error-title">Sensors Blocked</div>
+    <div class="error-msg">Your browser requires <strong>HTTPS</strong> for motion sensors. Open this page using the HTTPS link instead:</div>
+    <div class="error-code" id="https-hint">–</div>
+    <div class="error-msg" style="font-size:20px;margin-top:-8px">On iOS: Settings → Safari → Allow Cross-Website Tracking may also help.</div>
+    <button id="retry-btn">Try Again</button>
+  </div>
+
+  <!-- Controller Screen -->
+  <div class="screen hidden" id="ctrl-screen">
+    <div class="status-bar">
+      <div class="status-pill">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Connecting…</span>
+      </div>
+      <div class="smash-badge" id="smash-badge">💥 SMASH!</div>
+    </div>
+
+    <div class="bat-scene">
+      <div class="bat-wrap" id="bat-wrap">
+        <div class="bat-face"></div>
+        <div class="bat-handle"></div>
+      </div>
+    </div>
+
+    <div class="meters">
+      <div class="meter-card">
+        <div class="meter-label">Roll (γ)</div>
+        <div class="meter-value" id="val-gamma" style="color:var(--purple)">0°</div>
+        <div class="meter-bar-bg"><div class="meter-bar-fill" id="bar-gamma" style="background:var(--purple);width:2px;margin-left:50%"></div></div>
+      </div>
+      <div class="meter-card">
+        <div class="meter-label">Pitch (β)</div>
+        <div class="meter-value" id="val-beta" style="color:var(--blue)">0°</div>
+        <div class="meter-bar-bg"><div class="meter-bar-fill" id="bar-beta" style="background:var(--blue);width:2px;margin-left:50%"></div></div>
+      </div>
+      <div class="meter-card">
+        <div class="meter-label">Swing</div>
+        <div class="meter-value" id="val-swing" style="color:var(--green)">0.0</div>
+        <div class="meter-bar-bg"><div class="meter-bar-fill" id="bar-swing" style="background:var(--green);width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="serve-hint">Tap anywhere to serve</div>
+  </div>
+
+  <!-- Game-not-connected toast (non-blocking) -->
+  <div id="game-toast">⚠️ Game not detected — open http://localhost:4000</div>
+
+  <!-- Swipe flash -->
+  <div id="swipe-flash"></div>
+
+  <!-- Debug panel -->
+  <div id="debug-panel"></div>
+
+<script>
+(function () {
+  // ── Config ─────────────────────────────────────────────────────────────────
+  const PROTO        = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const WS_URL       = `${PROTO}//${location.host}`;
+  const SMASH_THRESH = 15;    // m/s² above gravity — lower = easier smash
+  const SEND_HZ      = 60;
+
+  // ── State ───────────────────────────────────────────────────────────────────
+  let ws            = null;
+  let wsConnected   = false;
+  let gameReady     = false;
+  let sensorsActive = false;
+  let lastAlpha = 0, lastBeta = 0, lastGamma = 0;
+  let smashCooldown = 0;
+  let sensorCheckTimer = null;
+  let orientCount   = 0;   // incremented each sensor event — sanity check
+
+  // ── DOM ─────────────────────────────────────────────────────────────────────
+  const permScreen  = document.getElementById('perm-screen');
+  const errorScreen = document.getElementById('error-screen');
+  const ctrlScreen  = document.getElementById('ctrl-screen');
+  const enableBtn   = document.getElementById('enable-btn');
+  const retryBtn    = document.getElementById('retry-btn');
+  const statusDot   = document.getElementById('status-dot');
+  const statusText  = document.getElementById('status-text');
+  const smashBadge  = document.getElementById('smash-badge');
+  const batWrap     = document.getElementById('bat-wrap');
+  const swipeFlash  = document.getElementById('swipe-flash');
+  const gameToast   = document.getElementById('game-toast');
+  const httpsHint   = document.getElementById('https-hint');
+  const debugPanel  = document.getElementById('debug-panel');
+
+  const valGamma = document.getElementById('val-gamma');
+  const valBeta  = document.getElementById('val-beta');
+  const valSwing = document.getElementById('val-swing');
+  const barGamma = document.getElementById('bar-gamma');
+  const barBeta  = document.getElementById('bar-beta');
+  const barSwing = document.getElementById('bar-swing');
+
+  // ── Debug log ────────────────────────────────────────────────────────────────
+  const debugLog = [];
+  function dbg(msg) {
+    const ts = new Date().toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    debugLog.unshift(`[${ts}] ${msg}`);
+    if (debugLog.length > 8) debugLog.pop();
+    debugPanel.innerHTML = debugLog.join('<br>');
+  }
+
+  // ── Permission & Sensor Boot ─────────────────────────────────────────────────
+  enableBtn.addEventListener('click', async () => {
+    enableBtn.disabled = true;
+    enableBtn.textContent = 'Enabling…';
+    dbg('Enable btn clicked');
+
+    // iOS 13+ explicit permission
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      dbg('iOS: requesting permission…');
+      try {
+        const res = await DeviceOrientationEvent.requestPermission();
+        dbg(`iOS permission: ${res}`);
+        if (res !== 'granted') {
+          showError('Permission was denied. Tap "Enable Sensors" again and choose Allow.');
+          return;
+        }
+      } catch (e) {
+        dbg(`iOS perm error: ${e.message}`);
+        // Could be non-secure context — show HTTPS error
+        if (location.protocol !== 'https:') {
+          showHttpsError();
+          return;
+        }
+        showError(`Could not request permission: ${e.message}`);
+        return;
+      }
+    } else {
+      dbg(`No requestPermission API (Android or older iOS). protocol=${location.protocol}`);
+    }
+
+    // Transition to controller screen immediately — do NOT wait for WS or game
+    permScreen.classList.add('hidden');
+    ctrlScreen.classList.remove('hidden');
+    setTimeout(() => ctrlScreen.classList.add('visible'), 20);
+    debugPanel.classList.add('visible');
+
+    // Start sensors
+    window.addEventListener('deviceorientation', onOrientation, true);
+    window.addEventListener('devicemotion',      onMotion,      true);
+    setInterval(sendOrientation, 1000 / SEND_HZ);
+
+    // Check if sensors actually fire after 3s
+    sensorCheckTimer = setTimeout(() => {
+      if (orientCount === 0) {
+        dbg('⚠️ No sensor events after 3s — possible HTTPS issue');
+        if (location.protocol !== 'https:') {
+          showHttpsError();
+        } else {
+          dbg('HTTPS OK but sensors still silent — device may not have gyro');
+        }
+      } else {
+        dbg(`✓ Sensors firing (${orientCount} events)`);
+        debugPanel.classList.remove('visible'); // hide debug once confirmed working
+      }
+    }, 3000);
+
+    // Connect WebSocket AFTER showing controller screen
+    connectWS();
+  });
+
+  retryBtn.addEventListener('click', () => {
+    errorScreen.classList.add('hidden');
+    permScreen.classList.remove('hidden');
+    permScreen.classList.remove('hidden');
+    enableBtn.disabled = false;
+    enableBtn.textContent = 'Enable Sensors';
+  });
+
+  function showError(msg) {
+    enableBtn.disabled = false;
+    enableBtn.textContent = 'Enable Sensors';
+    permScreen.classList.add('hidden');
+    errorScreen.querySelector('.error-msg').textContent = msg;
+    errorScreen.querySelector('.error-title').textContent = 'Permission Error';
+    errorScreen.querySelector('.error-icon').textContent = '🚫';
+    errorScreen.classList.remove('hidden');
+    dbg(`Error shown: ${msg}`);
+  }
+
+  function showHttpsError() {
+    enableBtn.disabled = false;
+    enableBtn.textContent = 'Enable Sensors';
+    const httpsUrl = `https://${HOST}:4001/controller`;
+    httpsHint.textContent = httpsUrl;
+    permScreen.classList.add('hidden');
+    ctrlScreen.classList.add('hidden');
+    errorScreen.classList.remove('hidden');
+    dbg(`HTTPS error shown. URL: ${httpsUrl}`);
+  }
+
+  // ── Orientation handler ───────────────────────────────────────────────────
+  let neutralBeta = null, neutralGamma = null, neutralAlpha = null;
+
+  function onOrientation(evt) {
+    orientCount++;
+    if (sensorCheckTimer && orientCount === 1) {
+      clearTimeout(sensorCheckTimer);
+      sensorCheckTimer = null;
+      debugPanel.classList.remove('visible');
+      sensorsActive = true;
+      dbg('✓ Sensor active');
+    }
+
+    lastAlpha = evt.alpha ?? 0;
+    lastBeta  = evt.beta  ?? 0;
+    lastGamma = evt.gamma ?? 0;
+
+    // Calibrate neutral on first reading
+    if (neutralBeta === null) {
+      neutralBeta  = lastBeta;
+      neutralAlpha = lastAlpha;
+      neutralGamma = lastGamma;
+      dbg(`Neutral calibrated: β=${lastBeta.toFixed(1)} γ=${lastGamma.toFixed(1)}`);
+    }
+
+    updateBatVisual(lastBeta, lastGamma, lastAlpha);
+    updateMeters(lastGamma, lastBeta);
+  }
+
+  function sendOrientation() {
+    if (!wsConnected || neutralBeta === null) return;
+    const msg = {
+      type: 'orient',
+      alpha: lastAlpha,
+      beta:  lastBeta,
+      gamma: lastGamma,
+      nb: neutralBeta,
+      ng: neutralGamma,
+      na: neutralAlpha
+    };
+    safeSend(msg);
+  }
+
+  // ── Motion handler (smash detection) ─────────────────────────────────────
+  function onMotion(evt) {
+    const a = evt.accelerationIncludingGravity;
+    if (!a) return;
+
+    const mag   = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
+    const swing = Math.max(0, mag - 9.8);
+
+    valSwing.innerText = swing.toFixed(1);
+    const pct = Math.min(100, (swing / SMASH_THRESH) * 100);
+    barSwing.style.width = pct + '%';
+    barSwing.style.background = swing > SMASH_THRESH * 0.7 ? 'var(--orange)' : 'var(--green)';
+
+    safeSend({ type: 'motion', swingMag: swing });
+
+    if (smashCooldown > 0) { smashCooldown -= 16; return; }
+    if (swing >= SMASH_THRESH) {
+      smashCooldown = 700;
+      safeSend({ type: 'smash' });
+      triggerSmashFeedback();
+    }
+  }
+
+  function triggerSmashFeedback() {
+    smashBadge.classList.add('active');
+    swipeFlash.classList.add('active');
+    if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
+    setTimeout(() => { smashBadge.classList.remove('active'); swipeFlash.classList.remove('active'); }, 600);
+  }
+
+  // ── Stance Calibration ───────────────────────────────────────────────────
+  const calibBtn = document.getElementById('calib-btn');
+  if (calibBtn) {
+    calibBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      neutralBeta  = lastBeta;
+      neutralGamma = lastGamma;
+      neutralAlpha = lastAlpha;
+      dbg(`Stance calibrated: β=${lastBeta.toFixed(1)} γ=${lastGamma.toFixed(1)} α=${lastAlpha.toFixed(1)}`);
+      if (navigator.vibrate) navigator.vibrate(60);
+      safeSend({
+        type: 'recalibrate',
+        nb: neutralBeta,
+        ng: neutralGamma,
+        na: neutralAlpha
+      });
+      calibBtn.classList.add('flash');
+      setTimeout(() => calibBtn.classList.remove('flash'), 400);
+    });
+  }
+
+  // ── 3D bat visual ─────────────────────────────────────────────────────────
+  function updateBatVisual(beta, gamma, alpha) {
+    const nb = neutralBeta  ?? beta;
+    const ng = neutralGamma ?? gamma;
+    const na = neutralAlpha ?? alpha;
+    const rx = Math.max(-45, Math.min(45,  -(beta  - nb) * 0.7));
+    const rz = Math.max(-35, Math.min(35,  -(gamma - ng) * 0.5));
+    let   da = alpha - na;
+    if (da > 180) da -= 360;
+    if (da < -180) da += 360;
+    const ry = Math.max(-45, Math.min(45, da * 0.5));
+    if (batWrap) batWrap.style.transform = `rotateX(${rx}deg) rotateZ(${rz}deg) rotateY(${ry}deg)`;
+  }
+
+  // ── Tilt meters ───────────────────────────────────────────────────────────
+  function updateMeters(gamma, beta) {
+    valGamma.innerText = gamma.toFixed(1) + '°';
+    valBeta.innerText  = beta.toFixed(1)  + '°';
+    const gPct = ((gamma + 90) / 180) * 100;
+    barGamma.style.marginLeft = Math.max(0, Math.min(99, gPct)).toFixed(1) + '%';
+    const bPct = ((Math.max(-90, Math.min(90, beta)) + 90) / 180) * 100;
+    barBeta.style.marginLeft  = Math.max(0, Math.min(99, bPct)).toFixed(1) + '%';
+  }
+
+  // ── WebSocket ────────────────────────────────────────────────────────────────
+  function connectWS() {
+    dbg(`WS → ${WS_URL}`);
+    try {
+      ws = new WebSocket(WS_URL);
+    } catch(e) {
+      dbg(`WS error: ${e.message}`);
+      updateStatusUI();
+      setTimeout(connectWS, 3000);
+      return;
+    }
+
+    ws.onopen = () => {
+      dbg('WS open — registering as pad');
+      ws.send(JSON.stringify({ role: 'pad' }));
+    };
+
+    ws.onmessage = (evt) => {
+      let msg;
+      try { msg = JSON.parse(evt.data); } catch { return; }
+      if (msg.type === 'server') {
+        if (msg.status === 'pad_registered') {
+          wsConnected = true;
+          gameReady   = msg.gameConnected;
+          dbg(`Registered. gameConnected=${msg.gameConnected}`);
+          updateStatusUI();
+        } else if (msg.status === 'game_connected') {
+          gameReady = true;
+          dbg('Game connected');
+          updateStatusUI();
+        } else if (msg.status === 'game_disconnected') {
+          gameReady = false;
+          dbg('Game disconnected');
+          updateStatusUI();
+        }
+      }
+    };
+
+    ws.onclose = (e) => {
+      wsConnected = false;
+      gameReady   = false;
+      dbg(`WS closed (${e.code})`);
+      updateStatusUI();
+      setTimeout(connectWS, 2500);
+    };
+
+    ws.onerror = () => {
+      dbg('WS error — closing');
+      ws.close();
+    };
+  }
+
+  function safeSend(data) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(data));
+    }
+  }
+
+  // ── Status UI — NEVER blocks the controller screen ──────────────────────
+  function updateStatusUI() {
+    if (!wsConnected) {
+      statusDot.className  = 'status-dot';   // red
+      statusText.innerText = 'Connecting…';
+    } else if (!gameReady) {
+      statusDot.className  = 'status-dot warn';  // orange
+      statusText.innerText = '📡 Server OK';
+      // Show non-blocking toast
+      gameToast.classList.add('visible');
+      setTimeout(() => gameToast.classList.remove('visible'), 5000);
+    } else {
+      statusDot.className  = 'status-dot ok';   // green
+      statusText.innerText = '🎮 Game Ready';
+      gameToast.classList.remove('visible');
+    }
+  }
+
+  // ── Tap → Serve ───────────────────────────────────────────────────────────
+  document.addEventListener('touchstart', (e) => {
+    // Spawn ripple
+    const touch = e.touches[0];
+    const r = document.createElement('div');
+    r.className = 'tap-ripple';
+    const size = 160;
+    r.style.cssText = `width:${size}px;height:${size}px;left:${touch.clientX-size/2}px;top:${touch.clientY-size/2}px`;
+    document.body.appendChild(r);
+    r.addEventListener('animationend', () => r.remove());
+
+    // Always send tap — server drops it if no game client
+    safeSend({ type: 'tap' });
+  }, { passive: true });
+
+})();
+</script>
+</body>
+</html>

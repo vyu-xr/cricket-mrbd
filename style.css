@@ -1,0 +1,402 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 20px;
+}
+
+body, div, span, p, a, button, input, select, textarea, label, strong, em, small, code, pre, th, td, option {
+  font-size: 20px; /* Explicit 20px base minimum across all elements */
+}
+
+body {
+  width: 600px;
+  height: 600px;
+  background: #0a0a0a;
+  overflow: hidden;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+/* ── Focus Ring for D-Pad / EMG Navigation ────── */
+.focusable {
+  outline: none !important;
+  transition: box-shadow 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+  pointer-events: auto;
+}
+
+.focusable:focus,
+.focusable:focus-visible {
+  border-color: #00d4ff !important;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.7), 0 0 0 2px #00d4ff !important;
+  transform: scale(1.05);
+}
+
+button.focusable {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+#canvas {
+  display: block;
+  width: 600px;
+  height: 600px;
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+/* ── HUD overlay ─────────────────────────────── */
+.ui-layer {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  color: white;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.4rem 1.6rem;
+  background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+}
+
+.player-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.player-score .label {
+  font-size: 20px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.player-score .score {
+  font-family: 'Bebas Neue', 'Impact', sans-serif;
+  font-size: 3.8rem;
+  font-weight: 400;
+  line-height: 1;
+  text-shadow: 0 4px 16px rgba(0,0,0,0.9);
+}
+
+.score.runs {
+  color: #fbbf24;
+  text-shadow: 0 0 24px rgba(251,191,36,0.4), 0 4px 16px rgba(0,0,0,0.9);
+}
+
+.score.target {
+  color: #38bdf8;
+  text-shadow: 0 0 20px rgba(56,189,248,0.4), 0 4px 16px rgba(0,0,0,0.9);
+}
+
+.score.wickets {
+  color: #f87171;
+  text-shadow: 0 0 20px rgba(248,113,113,0.35), 0 4px 16px rgba(0,0,0,0.9);
+}
+
+.level-indicator {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #4ade80;
+  text-transform: uppercase;
+}
+
+.message-overlay {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 22vh;
+}
+
+.message-text {
+  font-size: 2rem;
+  font-weight: 900;
+  text-align: center;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.95);
+  background: linear-gradient(135deg, #fef3c7, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.05em;
+}
+
+.message-text.level-complete {
+  font-size: 3rem;
+  background: linear-gradient(135deg, #bbf7d0, #4ade80, #16a34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.pulse-anim {
+  animation: pulse 2.2s infinite ease-in-out;
+}
+
+/* ── Smash/SIX/WICKET overlay ─────────────────── */
+.smash-overlay {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  font-family: 'Bebas Neue', 'Impact', sans-serif;
+  font-size: 7rem;
+  font-weight: 400;
+  color: #22c55e;
+  text-shadow: 0 0 60px rgba(34, 197, 94, 0.9), 0 0 20px rgba(255,255,255,0.4);
+  opacity: 0;
+  pointer-events: none;
+  letter-spacing: 0.08em;
+}
+
+.smash-overlay.active {
+  animation: smashAnim 1.0s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes pulse {
+  0%   { transform: scale(1);    opacity: 0.75; }
+  50%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1);    opacity: 0.75; }
+}
+
+@keyframes popIn {
+  0%   { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+@keyframes smashAnim {
+  0%   { transform: translate(-50%, -50%) scale(0.4) rotate(-8deg);  opacity: 0; }
+  18%  { transform: translate(-50%, -50%) scale(1.15) rotate(3deg);  opacity: 1; }
+  75%  { transform: translate(-50%, -50%) scale(1.0)  rotate(0deg);  opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4)  rotate(6deg);  opacity: 0; }
+}
+
+/* ── Mobile Pad Status Button ─────────────────── */
+.pad-status {
+  font-size: 1.4rem;
+  cursor: pointer;
+  pointer-events: all;
+  padding: 0.3rem 0.6rem;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  transition: background 0.2s ease, transform 0.15s ease;
+  display: flex; align-items: center; gap: 6px;
+  position: relative;
+}
+.pad-status:hover  { background: rgba(255,255,255,0.14); transform: scale(1.08); }
+.pad-status:active { transform: scale(0.95); }
+
+.pad-status.pad-connected {
+  background: rgba(74, 222, 128, 0.12);
+  border-color: rgba(74, 222, 128, 0.4);
+  box-shadow: 0 0 14px rgba(74,222,128,0.25);
+}
+.pad-status .pad-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #6b7280;
+}
+.pad-status.pad-connected .pad-dot {
+  background: #4ade80;
+  box-shadow: 0 0 6px #4ade80;
+}
+
+/* ── QR Overlay ──────────────────────────────── */
+.qr-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(4, 10, 4, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 200;
+  pointer-events: all;
+  transition: opacity 0.3s ease;
+}
+.qr-overlay.hidden { opacity: 0; pointer-events: none; }
+
+.qr-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 24px;
+  padding: 18px 20px;
+  text-align: center;
+  max-width: 380px; width: 90%;
+  max-height: 540px;
+  position: relative;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+  animation: cardIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+@keyframes cardIn {
+  from { transform: scale(0.88); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+.qr-close {
+  position: absolute; top: 12px; right: 14px;
+  font-size: 20px; cursor: pointer;
+  color: rgba(255,255,255,0.35);
+  transition: color 0.15s;
+}
+.qr-close:hover { color: #fff; }
+
+.qr-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; }
+.qr-sub   { font-size: 20px; color: rgba(255,255,255,0.7); margin-bottom: 12px; }
+
+#qr-code {
+  display: flex; justify-content: center;
+  margin-bottom: 10px;
+}
+#qr-code canvas, #qr-code img {
+  border-radius: 12px; padding: 6px; background: #fff;
+}
+
+.qr-url {
+  font-size: 20px; color: rgba(255,255,255,0.6);
+  word-break: break-all; margin-bottom: 8px; font-family: monospace;
+}
+
+/* ── Exclusive Event & Instruction Dialog Box ───────────────── */
+.dialog-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  pointer-events: auto;
+  transition: opacity 0.25s ease;
+}
+
+.dialog-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+  display: none;
+}
+
+.dialog-card {
+  background: linear-gradient(145deg, rgba(28, 30, 33, 0.95), rgba(12, 14, 18, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.2);
+  border-radius: 20px;
+  padding: 0.9rem 1.4rem;
+  width: 440px;
+  max-width: 90%;
+  max-height: 540px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  animation: dialogPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes dialogPop {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.dialog-icon {
+  font-size: 2.0rem;
+  line-height: 1;
+}
+
+.dialog-title {
+  font-family: 'Bebas Neue', 'Impact', sans-serif;
+  font-size: 1.8rem;
+  letter-spacing: 0.06em;
+  color: #38bdf8;
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.5);
+  margin: 0;
+}
+
+.dialog-sub {
+  font-size: 20px;
+  color: #e4e6eb;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.dialog-body {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.5rem 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  text-align: left;
+}
+
+.dialog-rule {
+  font-size: 20px;
+  color: #b0b3b8;
+  line-height: 1.25;
+}
+
+.dialog-rule strong {
+  color: #fbbf24;
+}
+
+.dialog-btn {
+  width: 100%;
+  margin-top: 0.2rem;
+  padding: 0.6rem 1.0rem;
+  font-family: 'Bebas Neue', 'Impact', sans-serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.1em;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 12px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+}
+
+.dialog-btn:hover, .dialog-btn:focus {
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.6), 0 0 0 3px rgba(0, 212, 255, 0.8);
+  transform: translateY(-1px);
+}
+
+.qr-hint {
+  font-size: 20px; color: rgba(74,222,128,0.95); font-weight: 600;
+}

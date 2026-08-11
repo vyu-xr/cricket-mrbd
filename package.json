@@ -1,0 +1,28 @@
+{
+  "name": "trial",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "dev": "while true; do node ws-server.js; echo '⟳ Server exited — restarting in 1s…'; sleep 1; done",
+    "test": "jest",
+    "lint": "eslint .",
+    "pad": "node ws-server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "three": "^0.185.1",
+    "ws": "^8.21.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
+    "babel-jest": "^30.4.1",
+    "eslint": "^10.7.0",
+    "eslint-plugin-jest": "^29.15.5",
+    "globals": "^17.9.0",
+    "jest": "^30.4.2"
+  }
+}

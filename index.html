@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=600, height=600, initial-scale=1.0, user-scalable=no" />
+  <meta name="mrbd-web-app-capable" content="yes" />
+  <meta name="description" content="3D Cricket batting game for Meta Display Glasses with EMG pinch, D-pad navigation, and phone controller support." />
+  <title>Cricket 3D</title>
+
+  <!-- ── Critical shell CSS inlined — zero-RTT first paint ───────────────── -->
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{font-size:20px}
+    body,div,span,p,a,button,input,select,textarea,label,strong,em,small,code,pre,th,td,option{font-size:20px}
+    body{width:600px;height:600px;background:#0a0a0a;overflow:hidden;font-family:'Inter','Segoe UI',system-ui,sans-serif;color:#fff;display:flex;align-items:center;justify-content:center;touch-action:none}
+    #canvas{display:block;width:600px;height:600px;position:relative;z-index:1;background:transparent}
+    .ui-layer{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box;color:#fff;overflow:hidden;z-index:2}
+    .focusable{outline:none!important;transition:box-shadow .2s ease,transform .15s ease,border-color .2s ease;pointer-events:auto}
+    .focusable:focus,.focusable:focus-visible{border-color:#00d4ff!important;box-shadow:0 0 20px rgba(0,212,255,.7),0 0 0 2px #00d4ff!important;transform:scale(1.05)}
+    button.focusable{background:none;border:none;color:inherit;font:inherit;cursor:pointer}
+    /* Dialog shell — visible immediately before JS loads */
+    .dialog-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;z-index:100;pointer-events:auto}
+    .dialog-overlay.hidden{opacity:0;pointer-events:none;display:none}
+    .dialog-card{background:linear-gradient(145deg,rgba(28,30,33,.95),rgba(12,14,18,.98));border:1px solid rgba(255,255,255,.18);box-shadow:0 16px 48px rgba(0,0,0,.8),0 0 30px rgba(56,189,248,.2);border-radius:20px;padding:.9rem 1.4rem;width:440px;max-width:90%;max-height:540px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.4rem}
+    .dialog-icon{font-size:2rem;line-height:1}
+    .dialog-title{font-family:'Bebas Neue','Impact',sans-serif;font-size:1.8rem;letter-spacing:.06em;color:#38bdf8;text-shadow:0 0 16px rgba(56,189,248,.5);margin:0}
+    .dialog-sub{font-size:20px;color:#e4e6eb;font-weight:500;line-height:1.2}
+    .dialog-body{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:.5rem .9rem;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:.3rem;text-align:left}
+    .dialog-rule{font-size:20px;color:#b0b3b8;line-height:1.25}
+    .dialog-rule strong{color:#fbbf24}
+    .dialog-btn{width:100%;margin-top:.2rem;padding:.6rem 1rem;font-family:'Bebas Neue','Impact',sans-serif;font-size:1.3rem;letter-spacing:.1em;color:#fff;background:linear-gradient(135deg,#0284c7 0%,#0369a1 100%);border:1px solid rgba(56,189,248,.4);border-radius:12px;cursor:pointer;outline:none;transition:all .2s ease;box-shadow:0 4px 14px rgba(2,132,199,.4)}
+    .dialog-btn:hover,.dialog-btn:focus{background:linear-gradient(135deg,#38bdf8 0%,#0284c7 100%);box-shadow:0 0 20px rgba(56,189,248,.6),0 0 0 3px rgba(0,212,255,.8);transform:translateY(-1px)}
+    /* Skeleton loader bars shown while Three.js loads */
+    #loading-shell{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;background:#0a0a0a;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:60px;pointer-events:none}
+    #loading-shell.ready{display:none}
+    .skel-bar{width:200px;height:4px;background:rgba(56,189,248,.25);border-radius:4px;overflow:hidden;margin-top:12px}
+    .skel-bar::after{content:'';display:block;width:60%;height:100%;background:linear-gradient(90deg,transparent,#38bdf8,transparent);animation:skel-sweep 1.4s ease-in-out infinite}
+    @keyframes skel-sweep{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+  </style>
+
+  <!-- Non-blocking full CSS: preload + swap to stylesheet after parse -->
+  <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="style.css" /></noscript>
+
+  <!-- Fonts: non-blocking, font-display:swap baked in via &display=swap -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700;900&display=swap"
+        onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700;900&display=swap" /></noscript>
+
+  <!-- QRCode: deferred — only needed when user opens QR overlay -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <!-- Skeleton loading shell: shown immediately, hidden once Three.js is ready -->
+  <div id="loading-shell" aria-hidden="true">
+    <div class="skel-bar"></div>
+    <div class="skel-bar" style="width:140px;opacity:.7;animation-delay:.2s"></div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <div id="ui-layer" class="ui-layer">
+    <div class="top-bar">
+      <div class="player-score">
+        <span class="label">TARGET</span>
+        <span id="bot-score" class="score target">–</span>
+      </div>
+      <div class="level-indicator">
+        BALL <span id="level-display">0/6</span>
+      </div>
+      <div id="pad-status" class="pad-status focusable" tabindex="0" data-action="toggle-qr" title="Use phone as bat" onclick="window.toggleQR && window.toggleQR()">
+        🏏
+      </div>
+      <div class="player-score">
+        <span id="user-score" class="score runs">0/0</span>
+        <span class="label">RUNS/WKT</span>
+      </div>
+    </div>
+
+    <div id="message-overlay" class="message-overlay">
+      <button id="message-display" class="message-text pulse-anim focusable" tabindex="0" data-action="face-bowler">CLICK TO FACE</button>
+    </div>
+
+    <div id="smash-overlay" class="smash-overlay">SIX! 🚀</div>
+
+    <!-- Exclusive Dialog Modal for Instructions & Match Outcomes -->
+    <div id="exclusive-dialog" class="dialog-overlay">
+      <div class="dialog-card">
+        <div id="dialog-icon" class="dialog-icon">🏏</div>
+        <div id="dialog-title" class="dialog-title">1-OVER CRICKET CHASE</div>
+        <div id="dialog-sub" class="dialog-sub">Chase the target runs in 6 continuous deliveries!</div>
+
+        <div id="dialog-body" class="dialog-body">
+          <div class="dialog-rule">🎯 <strong>TARGET:</strong> Chase random <span id="dialog-target-val">12 to 24</span> runs</div>
+          <div class="dialog-rule">⚡ <strong>OVERS:</strong> 1 Over (6 Balls continuous)</div>
+          <div class="dialog-rule">💥 <strong>LIMIT:</strong> Max 3 Wickets</div>
+          <div class="dialog-rule">🎮 <strong>CONTROLS:</strong> D-Pad/Arrow Keys or Phone Bat</div>
+        </div>
+
+        <button id="dialog-btn" class="dialog-btn focusable" tabindex="0" data-action="start-game">
+          START MATCH
+        </button>
+      </div>
+    </div>
+
+    <!-- QR overlay for phone controller -->
+    <div id="qr-overlay" class="qr-overlay hidden">
+      <div class="qr-card">
+        <button class="qr-close focusable" tabindex="0" data-action="close-qr" onclick="window.toggleQR && window.toggleQR()">✕</button>
+        <div class="qr-title">🏏 Use Phone as Bat</div>
+        <div class="qr-sub">Scan QR or open on phone:</div>
+        <div id="qr-code"></div>
+        <div class="qr-url" id="qr-url"></div>
+
+        <div style="margin-top: 10px; margin-bottom: 8px;">
+          <input id="ngrok-input" type="text" class="focusable" tabindex="0" placeholder="Tap to write or speak ngrok URL"
+            style="width: 100%; padding: 8px 12px; font-size: 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.5); color: #fff;"
+            onchange="window.updateNgrokUrl(this.value)" onkeyup="window.updateNgrokUrl(this.value)" />
+        </div>
+
+        <div class="qr-hint">Tilt &amp; swing your phone like a real cricket bat!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js via CDN — importmap -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/",
+        "cannon-es": "https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js"
+      }
+    }
+  </script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
