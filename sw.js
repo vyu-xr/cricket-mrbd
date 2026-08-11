@@ -1,4 +1,4 @@
-const CACHE = 'cricket-3d-v7';
+const CACHE = 'cricket-3d-v8';
 const FILES = [
   '/',
   '/index.html',

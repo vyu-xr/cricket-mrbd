@@ -400,6 +400,10 @@ function showDialog(type, data = {}) {
 function hideDialog() {
     const dialog = document.getElementById('exclusive-dialog');
     if (dialog) dialog.classList.add('hidden');
+    const msgBtn = document.getElementById('message-display');
+    if (msgBtn) {
+        msgBtn.focus();
+    }
 }
 
 (function initDialogEvents() {
@@ -611,18 +615,18 @@ document.addEventListener('keyup', (e) => {
     if (nk) { keys[nk] = false; e.preventDefault(); }
 });
 
-// Face bowler on message display click
+// Face bowler on message display click / pinch
 const msgDisplay = document.getElementById('message-display');
 if (msgDisplay) {
     msgDisplay.addEventListener('click', () => {
-        if (engineInitialized && !phoneActive) gameEngine.resetBall();
+        if (engineInitialized) gameEngine.resetBall();
     });
 }
 
-// Click to serve
+// Click / pinch to serve
 document.addEventListener('pointerdown', (e) => {
     if (e.target && e.target.closest && e.target.closest('.focusable')) return;
-    if (engineInitialized && !phoneActive) gameEngine.resetBall();
+    if (engineInitialized) gameEngine.resetBall();
 });
 
 // ── Mobile Controller (WebSocket) ─────────────────────────────────────────────
