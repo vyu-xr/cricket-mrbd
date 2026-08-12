@@ -1,11 +1,12 @@
-const CACHE = 'cricket-3d-v8';
+const CACHE = 'cricket-3d-v9';
 const FILES = [
   '/',
   '/index.html',
   '/style.css',
   '/main.js',
   '/gameEngine.js',
-  '/bat.glb'
+  '/bat.gltf',
+  '/bat.bin'
 ];
 
 self.addEventListener('install', (e) => {

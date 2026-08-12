@@ -446,10 +446,10 @@ function checkInitEngine() {
     }
 }
 
-// ── Load bat.glb ─────────────────────────────────────────────────────────────
+// ── Load bat.gltf ────────────────────────────────────────────────────────────
 const loader = new GLTFLoader();
 loader.load(
-    'bat.glb',
+    'bat.gltf',
     (gltf) => {
         const loadedMesh = gltf.scene;
 
@@ -491,7 +491,7 @@ loader.load(
         checkInitEngine();
     },
     undefined,
-    (err) => console.error('bat.glb load error:', err)
+    (err) => console.error('bat.gltf load error:', err)
 );
 
 // ── Keyboard & D-Pad Navigation (MRBD Specs) ──────────────────────────────────
