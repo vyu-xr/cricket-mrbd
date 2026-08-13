@@ -124,7 +124,7 @@ class GameEngine {
         this._clearAutoBowl();
     }
 
-    resetBall(delayMs = 2000) {
+    resetBall(delayMs = 1500) {
         this._clearAutoBowl();
         if (this.gameOver) { this.resetGame(); return; }
         if (this.ballActive || this.deliveryPending) return;
@@ -548,29 +548,29 @@ class GameEngine {
         const swY = this.batSpeed.y;
         const swingMag = Math.sqrt(swX * swX + swY * swY);
 
-        this.isSmashing = swY > 0.8 || swingMag > 2.0;
+        this.isSmashing = swY > 0.6 || swingMag > 1.8;
 
-        let hitPower = 12.0 + swingMag * 18.0;
-        if (this.isSmashing) hitPower += 25.0;
-        hitPower = Math.min(hitPower, 95.0);
+        let hitPower = 14.0 + swingMag * 22.0;
+        if (this.isSmashing) hitPower += 26.0;
+        hitPower = Math.min(hitPower, 110.0);
 
         // Direction mostly back toward bowler, modulated by lateral swing
         let dirX = swX * 1.5 + (Math.random() - 0.5) * 0.40;
         let dirZ = -(1.5 + Math.random() * 0.40);
-        let dirY = 0.20 + Math.max(0, swY) * 1.4;
+        let dirY = 0.22 + Math.max(0, swY) * 1.4;
         if (this.isSmashing) dirY += 1.2;
 
         const mag = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
         const normY = dirY / mag;
 
-        // ── Calculate runs based on trajectory & power ────────────────────────
-        if ((normY > 0.35 && hitPower > 46.0) || (this.isSmashing && normY > 0.25 && hitPower > 48.0)) {
+        // ── Calculate runs based on trajectory & power (tuned for glasses reaction speed)
+        if ((normY > 0.25 && hitPower > 38.0) || (this.isSmashing && hitPower > 40.0)) {
             this.pendingRuns = 6;
-        } else if (hitPower > 36.0 || (normY < 0.25 && hitPower > 30.0)) {
+        } else if (hitPower > 34.0 || (normY < 0.30 && hitPower > 31.0)) {
             this.pendingRuns = 4;
-        } else if (hitPower > 24.0) {
+        } else if (hitPower > 22.0) {
             this.pendingRuns = 3;
-        } else if (hitPower > 16.0) {
+        } else if (hitPower > 17.0) {
             this.pendingRuns = 2;
         } else {
             this.pendingRuns = 1;
