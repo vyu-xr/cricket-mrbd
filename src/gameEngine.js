@@ -3,7 +3,7 @@ import * as THREE from 'three';
 // ── Cricket physics constants ────────────────────────────────────────────────
 const GRAVITY            = -14.0;        // realistic overarm delivery trajectory
 const BALL_RADIUS        = 0.055;
-const PITCH_RESTITUTION  = 0.60;         // energy preserved on bounce
+const PITCH_RESTITUTION  = 0.48;         // energy preserved on bounce (tuned for realistic stump height)
 const PITCH_FRICTION_X   = 0.78;         // lateral friction on pitch bounce
 const PITCH_FRICTION_Z   = 0.80;         // along-pitch friction on bounce
 const MIN_BOUNCE_VY      = 0.20;         // below this vertical speed → roll instead of bounce
@@ -228,12 +228,12 @@ class GameEngine {
                 break;
             }
             case DELIVERY.FULL_TOSS: {
-                // Reaches batsman at waist height without bounce
+                // Reaches batsman at waist height (0.45m) with direct trajectory
                 const dz = pitchLen;
-                velZ = baseSpeed * 0.95;
+                velZ = baseSpeed * 1.05;
                 velX = (dx / dz) * velZ;
                 const tFlight = dz / velZ;
-                velY = (0.55 - spawnY - 0.5 * GRAVITY * tFlight * tFlight) / tFlight;
+                velY = ((this.pitchY + 0.45) - spawnY - 0.5 * GRAVITY * tFlight * tFlight) / tFlight;
                 break;
             }
             case DELIVERY.WIDE: {
@@ -425,7 +425,9 @@ class GameEngine {
                         this.ballVelocity.y = 0;
                         this.rolling = true;
                     } else {
-                        this.ballVelocity.y = vyOut;
+                        // Clamp post-bounce upward speed so deliveries stay within stump/head height (max 2.1 m/s)
+                        const maxVyOut = !this.hasHit ? (this.deliveryType === DELIVERY.BOUNCER ? 2.3 : 1.8) : vyOut;
+                        this.ballVelocity.y = Math.min(vyOut, maxVyOut);
                     }
 
                     this.fireEvent('hit', { type: 'pitch', pos, count: this.bounceCount });
@@ -534,27 +536,29 @@ class GameEngine {
         const swY = this.batSpeed.y;
         const swingMag = Math.sqrt(swX * swX + swY * swY);
 
-        this.isSmashing = swingMag > 1.2 || Math.abs(swY) > 1.0;
+        this.isSmashing = swY > 0.8 || swingMag > 2.0;
 
-        let hitPower = 35.0 + swingMag * 14.0;
-        if (this.isSmashing) hitPower += 30.0;
-        hitPower = Math.min(hitPower, 110.0);
+        let hitPower = 12.0 + swingMag * 18.0;
+        if (this.isSmashing) hitPower += 25.0;
+        hitPower = Math.min(hitPower, 95.0);
 
         // Direction mostly back toward bowler, modulated by lateral swing
         let dirX = swX * 1.5 + (Math.random() - 0.5) * 0.40;
         let dirZ = -(1.5 + Math.random() * 0.40);
-        let dirY = 0.25 + Math.max(0, swY) * 1.5;
+        let dirY = 0.20 + Math.max(0, swY) * 1.4;
         if (this.isSmashing) dirY += 1.2;
 
         const mag = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
         const normY = dirY / mag;
 
         // ── Calculate runs based on trajectory & power ────────────────────────
-        if ((normY > 0.38 && hitPower > 40.0) || (this.isSmashing && hitPower > 50.0)) {
+        if ((normY > 0.35 && hitPower > 46.0) || (this.isSmashing && normY > 0.25 && hitPower > 48.0)) {
             this.pendingRuns = 6;
-        } else if (hitPower > 32.0 || (normY > 0.15 && hitPower > 25.0)) {
+        } else if (hitPower > 36.0 || (normY < 0.25 && hitPower > 30.0)) {
             this.pendingRuns = 4;
-        } else if (hitPower > 20.0) {
+        } else if (hitPower > 24.0) {
+            this.pendingRuns = 3;
+        } else if (hitPower > 16.0) {
             this.pendingRuns = 2;
         } else {
             this.pendingRuns = 1;

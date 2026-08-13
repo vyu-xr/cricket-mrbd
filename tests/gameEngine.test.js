@@ -97,4 +97,31 @@ describe('Cricket GameEngine 1-Over Target Chase Logic', () => {
         gameEngine.update(0.016);
         expect(gameEngine.ballMesh.position.z).toBeLessThan(-5.0);
     });
+
+    test('Classifies shots into 1s, 2s, 3s, 4s, and 6s based on swing speed and angle', () => {
+        // Low speed defensive tap -> 1 run
+        gameEngine.batSpeed.set(0.1, 0.0, 0.0);
+        gameEngine._applyBatHit();
+        expect(gameEngine.pendingRuns).toBe(1);
+
+        // Gentle push -> 2 runs
+        gameEngine.batSpeed.set(0.3, 0.1, 0.0);
+        gameEngine._applyBatHit();
+        expect(gameEngine.pendingRuns).toBe(2);
+
+        // Good placement -> 3 runs
+        gameEngine.batSpeed.set(0.7, 0.2, 0.0);
+        gameEngine._applyBatHit();
+        expect(gameEngine.pendingRuns).toBe(3);
+
+        // Fast swing drive -> 4 runs
+        gameEngine.batSpeed.set(1.4, 0.0, 0.0);
+        gameEngine._applyBatHit();
+        expect(gameEngine.pendingRuns).toBe(4);
+
+        // High lofted smash -> 6 runs
+        gameEngine.batSpeed.set(1.5, 1.5, 0.0);
+        gameEngine._applyBatHit();
+        expect(gameEngine.pendingRuns).toBe(6);
+    });
 });
