@@ -1,10 +1,12 @@
-const CACHE = 'cricket-3d-v13';
+const CACHE = 'cricket-3d-v14';
 const FILES = [
   './',
   './index.html',
   './src/style.css',
   './src/main.js',
   './src/gameEngine.js',
+  './controller.html',
+  './controller/index.html',
   './public/controller.html',
   './assets/models/bat.gltf',
   './assets/models/bat.bin'

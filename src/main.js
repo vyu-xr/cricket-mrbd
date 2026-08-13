@@ -841,9 +841,11 @@ window.toggleQR = function() {
     qrVisible = !qrVisible;
     if (qrVisible) {
         const input = document.getElementById('ngrok-input');
-        const saved = localStorage.getItem('ngrokUrl');
-        if (input && saved) input.value = saved;
-        const url = saved || `http://${location.hostname}:4000/controller`;
+        const basePath = location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
+        const defaultUrl = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+            ? `http://${location.hostname}:4000/controller`
+            : `${location.origin}${basePath}/controller`;
+        const url = saved || defaultUrl;
         window.renderQR(url);
         overlay.classList.remove('hidden');
     } else {
