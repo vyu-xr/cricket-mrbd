@@ -124,7 +124,7 @@ class GameEngine {
         this._clearAutoBowl();
     }
 
-    resetBall(delayMs = 250) {
+    resetBall(delayMs = 500) {
         this._clearAutoBowl();
         if (this.gameOver) { this.resetGame(); return; }
         if (this.ballActive || this.deliveryPending) return;

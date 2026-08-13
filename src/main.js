@@ -457,7 +457,7 @@ let batBaseY = 0, batTargetY = 0;
 
 const BAT_LIMIT_X = 0.6;
 const BAT_LIMIT_Y = 0.5;
-const BAT_SPEED   = 0.1; // much higher sensitivity
+const BAT_SPEED   = 0.025; // fine granular speed for smooth continuous movement
 
 let phoneActive = false;
 let phoneRotX = 0, phoneRotY = 0, phoneRotZ = 0;
@@ -527,7 +527,7 @@ loader.load(
 
 // ── Keyboard & D-Pad Navigation (MRBD Specs) ──────────────────────────────────
 const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
-const DPAD_STEP = 0.25;
+const DPAD_STEP = 0.06; // fine granular step per D-pad tap (6cm per step)
 
 function getFocusableElements() {
     const visibleDialog  = document.querySelector('#exclusive-dialog:not(.hidden)');
@@ -930,8 +930,9 @@ function animate(currentTime = 0) {
             if (keys.ArrowUp)    batTargetY = Math.min(batBaseY + BAT_LIMIT_Y, batTargetY + BAT_SPEED);
             if (keys.ArrowDown)  batTargetY = Math.max(0.0, batTargetY - BAT_SPEED);
         }
-        const newX = bat.position.x + (batTargetX - bat.position.x) * 0.95; // instant zero-lag follow
-        const newY = bat.position.y + (batTargetY - bat.position.y) * 0.95;
+        const lerpFactor = 0.28; // fluid granular interpolation
+        const newX = bat.position.x + (batTargetX - bat.position.x) * lerpFactor;
+        const newY = bat.position.y + (batTargetY - bat.position.y) * lerpFactor;
         gameEngine.setPaddlePosition(newX, newY, bat.position.z);
 
         if (phoneActive) {
@@ -940,9 +941,10 @@ function animate(currentTime = 0) {
             bat.rotation.y = bat.rotation.y + (phoneRotY - bat.rotation.y) * lerpSpeed;
             bat.rotation.z = bat.rotation.z + (phoneRotZ - bat.rotation.z) * lerpSpeed;
         } else {
+            const stanceTiltZ = -((newX - batBaseX) / BAT_LIMIT_X) * 0.18;
             bat.rotation.x = bat.rotation.x + (-Math.PI / 6 - bat.rotation.x) * 0.06;
             bat.rotation.y = bat.rotation.y + (Math.PI - bat.rotation.y) * 0.06;
-            bat.rotation.z = bat.rotation.z + (0 - bat.rotation.z) * 0.06;
+            bat.rotation.z = bat.rotation.z + (stanceTiltZ - bat.rotation.z) * 0.12;
         }
     }
 
