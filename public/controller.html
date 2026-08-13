@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>🏏 Cricket Bat Controller</title>
+  <title>Cricket Bat Controller</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet" />
   <style>
@@ -162,7 +162,7 @@
 
   <!-- Permission Screen -->
   <div class="screen" id="perm-screen">
-    <div class="perm-icon">🏓</div>
+    <div class="perm-icon"></div>
     <div class="perm-title">Your Phone is<br/>the Bat</div>
     <div class="perm-sub">Hold like a paddle, tilt to move, flick to smash. Tap to serve.</div>
     <button id="enable-btn">Enable Sensors</button>
@@ -170,7 +170,7 @@
 
   <!-- Error Screen (HTTPS / sensor blocked) -->
   <div class="screen hidden" id="error-screen">
-    <div class="error-icon">🔒</div>
+    <div class="error-icon"></div>
     <div class="error-title">Sensors Blocked</div>
     <div class="error-msg">Your browser requires <strong>HTTPS</strong> for motion sensors. Open this page using the HTTPS link instead:</div>
     <div class="error-code" id="https-hint">–</div>
@@ -185,7 +185,7 @@
         <div class="status-dot" id="status-dot"></div>
         <span id="status-text">Connecting…</span>
       </div>
-      <div class="smash-badge" id="smash-badge">💥 SMASH!</div>
+      <div class="smash-badge" id="smash-badge">SMASH!</div>
     </div>
 
     <div class="bat-scene">
@@ -337,7 +337,6 @@
 
   retryBtn.addEventListener('click', () => {
     errorScreen.classList.add('hidden');
-    permScreen.classList.remove('hidden');
     permScreen.classList.remove('hidden');
     enableBtn.disabled = false;
     enableBtn.textContent = 'Enable Sensors';

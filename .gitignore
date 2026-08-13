@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# SSL Certificates
+certs/
+.ssl-cert.pem
+.ssl-key.pem
+
+# Environment & Logs
+*.log
+.env
+
+# Coverage / Testing
+coverage/

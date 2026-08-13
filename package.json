@@ -1,5 +1,5 @@
 {
-  "name": "trial",
+  "name": "meta-cricket-3d",
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
@@ -8,10 +8,15 @@
     "lint": "eslint .",
     "pad": "node ws-server.js"
   },
-  "keywords": [],
+  "keywords": [
+    "meta-rayban",
+    "cricket",
+    "3d",
+    "web-app"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "3D Cricket batting game for Meta Display Glasses with EMG pinch, D-pad navigation, and phone controller support.",
   "dependencies": {
     "three": "^0.185.1",
     "ws": "^8.21.1"

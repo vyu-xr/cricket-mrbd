@@ -262,32 +262,59 @@ function updateTrail() {
     }
 }
 
-// ── Hit Particles ────────────────────────────────────────────────────────────
-const hitParticles = [];
+// ── Hit Particles (Zero-Allocation Object Pool) ─────────────────────────────
+const MAX_HIT_PARTICLES = 32;
+const hitParticlePool   = [];
 const sharedParticleGeo = new THREE.BoxGeometry(0.025, 0.025, 0.025);
 const sharedParticleMatNormal = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const sharedParticleMatSmash  = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
 
+for (let i = 0; i < MAX_HIT_PARTICLES; i++) {
+    const mesh = new THREE.Mesh(sharedParticleGeo, sharedParticleMatNormal);
+    mesh.visible = false;
+    scene.add(mesh);
+    hitParticlePool.push({
+        mesh,
+        vel: new THREE.Vector3(),
+        active: false,
+        life: 0
+    });
+}
+
 function spawnHitParticles(pos, isSmash = false) {
-    const count = isSmash ? 24 : 10;
+    const count = isSmash ? 16 : 8;
     const mat   = isSmash ? sharedParticleMatSmash : sharedParticleMatNormal;
-    for (let i = 0; i < count; i++) {
-        const pMesh = new THREE.Mesh(sharedParticleGeo, mat);
-        pMesh.position.copy(pos);
-        const vx = (Math.random() - 0.5) * 3.5;
-        const vy = Math.random() * 2.2 + 0.5;
-        const vz = (Math.random() - 0.5) * 3.5;
-        scene.add(pMesh);
-        hitParticles.push({ mesh: pMesh, vel: new THREE.Vector3(vx, vy, vz), life: 1.0 });
+    let spawned = 0;
+
+    for (let i = 0; i < MAX_HIT_PARTICLES && spawned < count; i++) {
+        const p = hitParticlePool[i];
+        if (!p.active) {
+            p.active = true;
+            p.life = 1.0;
+            p.mesh.material = mat;
+            p.mesh.position.copy(pos);
+            p.mesh.scale.setScalar(1.0);
+            p.mesh.visible = true;
+
+            p.vel.set(
+                (Math.random() - 0.5) * 3.2,
+                Math.random() * 2.0 + 0.5,
+                (Math.random() - 0.5) * 3.2
+            );
+            spawned++;
+        }
     }
 }
+
 function updateHitParticles(dt) {
-    for (let i = hitParticles.length - 1; i >= 0; i--) {
-        const p = hitParticles[i];
+    for (let i = 0; i < MAX_HIT_PARTICLES; i++) {
+        const p = hitParticlePool[i];
+        if (!p.active) continue;
+
         p.life -= dt * 1.8;
         if (p.life <= 0) {
-            scene.remove(p.mesh);
-            hitParticles.splice(i, 1);
+            p.active = false;
+            p.mesh.visible = false;
         } else {
             p.mesh.position.addScaledVector(p.vel, dt);
             p.vel.y -= 9 * dt;
@@ -327,7 +354,7 @@ function handleGameEvent(eventName, data) {
         if (data.runs >= 4) {
             const overlay = document.getElementById('smash-overlay');
             if (overlay) {
-                overlay.textContent = data.runs === 6 ? 'SIX! 🚀' : 'FOUR! ⚡';
+                overlay.textContent = data.runs === 6 ? 'SIX!' : 'FOUR!';
                 overlay.style.color = data.runs === 6 ? '#22c55e' : '#f59e0b';
                 overlay.classList.remove('active');
                 void overlay.offsetWidth;
@@ -352,42 +379,42 @@ function showDialog(type, data = {}) {
     if (!dialog || !title || !btn) return;
 
     if (type === 'start') {
-        if (icon)  icon.innerText  = '🏏';
+        if (icon)  icon.innerText  = '';
         title.innerText = '1-OVER CRICKET CHASE';
         if (sub)   sub.innerText   = 'Chase the target runs in 6 continuous deliveries!';
         if (body) {
             body.innerHTML = `
-              <div class="dialog-rule">🎯 <strong>TARGET:</strong> Chase random <strong>12 to 24</strong> runs</div>
-              <div class="dialog-rule">⚡ <strong>OVERS:</strong> 1 Over (6 Balls continuous)</div>
-              <div class="dialog-rule">💥 <strong>LIMIT:</strong> Max 3 Wickets</div>
-              <div class="dialog-rule">🎮 <strong>CONTROLS:</strong> D-Pad/Arrow Keys or Phone Bat</div>
+              <div class="dialog-rule"><strong>TARGET:</strong> Chase random <strong>12 to 24</strong> runs</div>
+              <div class="dialog-rule"><strong>OVERS:</strong> 1 Over (6 Balls continuous)</div>
+              <div class="dialog-rule"><strong>LIMIT:</strong> Max 3 Wickets</div>
+              <div class="dialog-rule"><strong>CONTROLS:</strong> D-Pad/Arrow Keys or Phone Bat</div>
             `;
         }
         btn.innerText = 'START MATCH';
     } else if (type === 'win') {
-        if (icon)  icon.innerText  = '🏆';
+        if (icon)  icon.innerText  = '';
         title.innerText = 'TARGET CHASED!';
         if (sub)   sub.innerText   = 'Outstanding batting! You won the match!';
         if (body) {
             const wktsLeft = 3 - (data.wickets || 0);
             body.innerHTML = `
-              <div class="dialog-rule">🏆 <strong>RESULT:</strong> Won by ${wktsLeft} wicket${wktsLeft !== 1 ? 's' : ''}!</div>
-              <div class="dialog-rule">📊 <strong>FINAL SCORE:</strong> ${data.runs || 0} Runs</div>
-              <div class="dialog-rule">🎯 <strong>TARGET:</strong> ${data.target || 0} Runs</div>
+              <div class="dialog-rule"><strong>RESULT:</strong> Won by ${wktsLeft} wicket${wktsLeft !== 1 ? 's' : ''}!</div>
+              <div class="dialog-rule"><strong>FINAL SCORE:</strong> ${data.runs || 0} Runs</div>
+              <div class="dialog-rule"><strong>TARGET:</strong> ${data.target || 0} Runs</div>
             `;
         }
         btn.innerText = 'PLAY AGAIN';
     } else if (type === 'lose') {
-        if (icon)  icon.innerText  = '💥';
+        if (icon)  icon.innerText  = '';
         title.innerText = 'MATCH LOST';
         const isAllOut = data.reason === 'allOut';
         if (sub)   sub.innerText   = isAllOut ? 'All wickets down!' : 'Over finished!';
         if (body) {
             const needed = Math.max(0, (gameEngine.target || 0) - (gameEngine.runs || 0));
             body.innerHTML = `
-              <div class="dialog-rule">❌ <strong>REASON:</strong> ${isAllOut ? 'All 3 Wickets Lost' : '6 Balls Completed'}</div>
-              <div class="dialog-rule">📊 <strong>SCORE:</strong> ${gameEngine.runs || 0}/${gameEngine.wickets || 0} (Target: ${gameEngine.target || 0})</div>
-              <div class="dialog-rule">💔 <strong>SHORTFALL:</strong> Needed ${needed} more run${needed !== 1 ? 's' : ''}</div>
+              <div class="dialog-rule"><strong>REASON:</strong> ${isAllOut ? 'All 3 Wickets Lost' : '6 Balls Completed'}</div>
+              <div class="dialog-rule"><strong>SCORE:</strong> ${gameEngine.runs || 0}/${gameEngine.wickets || 0} (Target: ${gameEngine.target || 0})</div>
+              <div class="dialog-rule"><strong>SHORTFALL:</strong> Needed ${needed} more run${needed !== 1 ? 's' : ''}</div>
             `;
         }
         btn.innerText = 'RETRY MATCH';
@@ -446,10 +473,10 @@ function checkInitEngine() {
     }
 }
 
-// ── Load bat.gltf ────────────────────────────────────────────────────────────
+// ── Load 3D Bat Model ────────────────────────────────────────────────────────
 const loader = new GLTFLoader();
 loader.load(
-    'bat.gltf',
+    'assets/models/bat.gltf',
     (gltf) => {
         const loadedMesh = gltf.scene;
 
@@ -491,7 +518,7 @@ loader.load(
         checkInitEngine();
     },
     undefined,
-    (err) => console.error('bat.gltf load error:', err)
+    (err) => console.error('assets/models/bat.gltf load error:', err)
 );
 
 // ── Keyboard & D-Pad Navigation (MRBD Specs) ──────────────────────────────────
@@ -734,7 +761,7 @@ class MobileController {
         if (!btn) return;
         if (connected) {
             btn.classList.add('pad-connected');
-            btn.title = '🏏 Bat Connected — click to show QR';
+            btn.title = 'Bat Connected — click to show QR';
         } else {
             btn.classList.remove('pad-connected');
             btn.title = 'Use phone as bat';
@@ -742,17 +769,45 @@ class MobileController {
     }
 }
 
-// QR overlay helpers (unchanged)
+// QR overlay helpers (dynamic script load)
 let qrVisible = false;
+let qrScriptLoading = false;
+
+function ensureQRCodeLoaded(cb) {
+    if (typeof QRCode !== 'undefined') {
+        cb();
+        return;
+    }
+    if (qrScriptLoading) {
+        setTimeout(() => ensureQRCodeLoaded(cb), 100);
+        return;
+    }
+    qrScriptLoading = true;
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    script.onload = () => {
+        qrScriptLoading = false;
+        cb();
+    };
+    script.onerror = () => {
+        qrScriptLoading = false;
+        console.warn('QRCode script load failed');
+    };
+    document.head.appendChild(script);
+}
+
 window.renderQR = function(url) {
     const qrDiv = document.getElementById('qr-code');
     const urlEl = document.getElementById('qr-url');
     if (!qrDiv) return;
     qrDiv.innerHTML = '';
-    if (typeof QRCode !== 'undefined') {
-        new QRCode(qrDiv, { text: url, width: 180, height: 180,
-            colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
-    }
+    ensureQRCodeLoaded(() => {
+        if (typeof QRCode !== 'undefined') {
+            qrDiv.innerHTML = '';
+            new QRCode(qrDiv, { text: url, width: 180, height: 180,
+                colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+        }
+    });
     if (urlEl) urlEl.innerText = url;
 };
 window.updateNgrokUrl = function(val) {
@@ -791,8 +846,8 @@ const wsHost  = (location.hostname && location.hostname !== '' && location.hostn
     : 'localhost:4000';
 new MobileController(`${wsProto}//${wsHost}`);
 
-// ── Ambient Particle Field (fireflies in outfield) ────────────────────────────
-const PARTICLE_COUNT = 500;
+// ── Ambient Particle Field (fireflies in outfield - 120 points for 30Hz target) ─
+const PARTICLE_COUNT = 120;
 const positions = new Float32Array(PARTICLE_COUNT * 3);
 for (let i = 0; i < PARTICLE_COUNT; i++) {
     const theta = Math.random() * Math.PI * 2;

@@ -17,6 +17,8 @@
     .ui-layer{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box;color:#fff;overflow:hidden;z-index:2}
     .focusable{outline:none!important;transition:box-shadow .2s ease,transform .15s ease,border-color .2s ease;pointer-events:auto}
     .focusable:focus,.focusable:focus-visible{border-color:#00d4ff!important;box-shadow:0 0 20px rgba(0,212,255,.7),0 0 0 2px #00d4ff!important;transform:scale(1.05)}
+    .message-text:empty,#message-display:empty{display:none!important;opacity:0!important;pointer-events:none!important}
+    .message-text.focusable:focus,.message-text.focusable:focus-visible{border-color:transparent!important;box-shadow:none!important;outline:none!important;text-shadow:0 0 24px rgba(0,212,255,.9),0 4px 20px rgba(0,0,0,.95)!important;transform:scale(1.05)}
     button.focusable{background:none;border:none;color:inherit;font:inherit;cursor:pointer}
     /* Dialog shell — visible immediately before JS loads */
     .dialog-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;z-index:100;pointer-events:auto}
@@ -39,8 +41,8 @@
   </style>
 
   <!-- Non-blocking full CSS: preload + swap to stylesheet after parse -->
-  <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript><link rel="stylesheet" href="style.css" /></noscript>
+  <link rel="preload" href="src/style.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="src/style.css" /></noscript>
 
   <!-- Fonts: non-blocking, font-display:swap baked in via &display=swap -->
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
@@ -48,8 +50,6 @@
         onload="this.onload=null;this.rel='stylesheet'" />
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700;900&display=swap" /></noscript>
 
-  <!-- QRCode: deferred — only needed when user opens QR overlay -->
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
   <!-- Skeleton loading shell: shown immediately, hidden once Three.js is ready -->
@@ -70,7 +70,7 @@
         BALL <span id="level-display">0/6</span>
       </div>
       <div id="pad-status" class="pad-status focusable" tabindex="0" data-action="toggle-qr" title="Use phone as bat" onclick="window.toggleQR && window.toggleQR()">
-        🏏
+        BAT
       </div>
       <div class="player-score">
         <span id="user-score" class="score runs">0/0</span>
@@ -82,20 +82,20 @@
       <button id="message-display" class="message-text pulse-anim focusable" tabindex="0" data-action="face-bowler">CLICK TO FACE</button>
     </div>
 
-    <div id="smash-overlay" class="smash-overlay">SIX! 🚀</div>
+    <div id="smash-overlay" class="smash-overlay">SIX!</div>
 
     <!-- Exclusive Dialog Modal for Instructions & Match Outcomes -->
     <div id="exclusive-dialog" class="dialog-overlay">
       <div class="dialog-card">
-        <div id="dialog-icon" class="dialog-icon">🏏</div>
+        <div id="dialog-icon" class="dialog-icon"></div>
         <div id="dialog-title" class="dialog-title">1-OVER CRICKET CHASE</div>
         <div id="dialog-sub" class="dialog-sub">Chase the target runs in 6 continuous deliveries!</div>
 
         <div id="dialog-body" class="dialog-body">
-          <div class="dialog-rule">🎯 <strong>TARGET:</strong> Chase random <span id="dialog-target-val">12 to 24</span> runs</div>
-          <div class="dialog-rule">⚡ <strong>OVERS:</strong> 1 Over (6 Balls continuous)</div>
-          <div class="dialog-rule">💥 <strong>LIMIT:</strong> Max 3 Wickets</div>
-          <div class="dialog-rule">🎮 <strong>CONTROLS:</strong> D-Pad/Arrow Keys or Phone Bat</div>
+          <div class="dialog-rule"><strong>TARGET:</strong> Chase random <span id="dialog-target-val">12 to 24</span> runs</div>
+          <div class="dialog-rule"><strong>OVERS:</strong> 1 Over (6 Balls continuous)</div>
+          <div class="dialog-rule"><strong>LIMIT:</strong> Max 3 Wickets</div>
+          <div class="dialog-rule"><strong>CONTROLS:</strong> D-Pad/Arrow Keys or Phone Bat</div>
         </div>
 
         <button id="dialog-btn" class="dialog-btn focusable" tabindex="0" data-action="start-game">
@@ -108,7 +108,7 @@
     <div id="qr-overlay" class="qr-overlay hidden">
       <div class="qr-card">
         <button class="qr-close focusable" tabindex="0" data-action="close-qr" onclick="window.toggleQR && window.toggleQR()">✕</button>
-        <div class="qr-title">🏏 Use Phone as Bat</div>
+        <div class="qr-title">Use Phone as Bat</div>
         <div class="qr-sub">Scan QR or open on phone:</div>
         <div id="qr-code"></div>
         <div class="qr-url" id="qr-url"></div>
@@ -134,6 +134,6 @@
       }
     }
   </script>
-  <script type="module" src="main.js"></script>
+  <script type="module" src="src/main.js"></script>
 </body>
 </html>

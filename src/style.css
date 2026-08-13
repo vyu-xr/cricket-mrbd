@@ -151,6 +151,22 @@ button.focusable {
   letter-spacing: 0.05em;
 }
 
+.message-text:empty,
+#message-display:empty {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.message-text.focusable:focus,
+.message-text.focusable:focus-visible {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  text-shadow: 0 0 24px rgba(0, 212, 255, 0.9), 0 4px 20px rgba(0, 0, 0, 0.95) !important;
+  transform: scale(1.05);
+}
+
 .message-text.level-complete {
   font-size: 3rem;
   background: linear-gradient(135deg, #bbf7d0, #4ade80, #16a34a);
@@ -162,6 +178,7 @@ button.focusable {
 
 .pulse-anim {
   animation: pulse 2.2s infinite ease-in-out;
+  will-change: transform, opacity;
 }
 
 /* ── Smash/SIX/WICKET overlay ─────────────────── */
@@ -178,6 +195,7 @@ button.focusable {
   opacity: 0;
   pointer-events: none;
   letter-spacing: 0.08em;
+  will-change: transform, opacity;
 }
 
 .smash-overlay.active {

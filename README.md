@@ -1,43 +1,56 @@
-# 3D Ping Pong Game
+# 3D Cricket Batting Game (Meta Display Glasses)
 
-A 3D Ping Pong game built using **Three.js** for rendering and **Cannon-es** for physics. 
+A high-performance 3D Cricket Batting Game built for **Meta Display Glasses (MRBD)** with EMG wristband gesture support, D-pad navigation, and an optional real-time mobile phone bat controller over WebSockets.
 
 ## Features
-- **3D Graphics**: Built using Three.js with custom GLTF models for the paddle and the table.
-- **Physics**: Real-time physics engine integration using Cannon-es for realistic ball bounces and collisions.
-- **Bot Opponent**: Play against a bot that tracks the ball.
-- **Dynamic UI**: In-game UI for scores, levels, and user feedback (e.g., "SMASH!" indicator).
+- **Meta Display Glasses Optimized**: Fixed 600x600 resolution viewport, dark mode color palette (`#0a0a0a`), zero-RTT first paint skeleton loader, and 30Hz target render loop.
+- **Realistic 3D Cricket Physics**: Overarm bowler deliveries (good length, bouncer, yorker, full toss), lateral swing, seam rotation deviation, bat collision power dynamics, and flying stump physics.
+- **Phone Bat Controller**: Use your smartphone as a motion-tracked cricket bat via DeviceOrientation and WebSocket telemetry.
+- **PWA & Offline Ready**: Service Worker (`sw.js`) precaching support.
+- **1-Over Chase Target**: Continuous 6-ball target chase game mode with max 3 wickets.
 
 ## Tech Stack
-- HTML, CSS, JavaScript (Vanilla)
-- [Three.js](https://threejs.org/) (via CDN)
-- [Cannon-es](https://pmndrs.github.io/cannon-es/) (via CDN)
-- Jest (for unit testing game logic)
+- HTML5, CSS3, JavaScript (ES Modules / Vanilla)
+- [Three.js](https://threejs.org/) (3D rendering & lighting)
+- [WebSocket / Node.js](https://github.com/websockets/ws) (Real-time controller server)
+- Jest & Babel (Unit testing)
 
 ## Project Structure
-- `index.html`: The main entry point containing the Three.js setup and UI structure.
-- `style.css`: Styles for the in-game UI overlay.
-- `main.js`: Handles 3D rendering, scene setup, loading models, user inputs, and the game loop.
-- `gameEngine.js`: Contains the core game state and logic (ball movement, collision physics, scoring).
-- `assets/`: Contains the 3D models (`paddle.glb` and `table base.glb`).
+- `index.html`: Main game interface & overlay UI.
+- `controller.html`: Phone motion controller interface.
+- `style.css`: Modern high-contrast dark theme & HUD styling.
+- `main.js`: 3D scene initialization, lights, render loop, & input handlers.
+- `gameEngine.js`: Cricket match state, delivery trajectories, & collision physics.
+- `ws-server.js`: Node.js HTTP & WebSocket relay server on port 4000.
+- `sw.js`: Service worker for asset precaching and offline support.
+- `assets/models/`: 3D models (`bat.gltf`, `bat.bin`).
+- `tests/`: Automated unit tests for match logic (`gameEngine.test.js`).
 
-## How to Play
+## Running Locally
 
-### Local Development
-To run the game locally, you can use any static file server to serve the root directory. For example, if you have Python installed:
-```bash
-# Using Python 3
-python -m http.server 8000
-```
-Then navigate to `http://localhost:8000` in your browser.
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-Alternatively, you can use VS Code's "Live Server" extension.
+2. Start the game server:
+   ```bash
+   npm run pad
+   # or
+   npm run dev
+   ```
 
-### Controls
-- **Click / Tap / Enter**: Serve the ball
-- **Arrow Keys** (or W/A/S/D): Move the paddle to hit the ball back to the bot.
+3. Open in browser:
+   - **Game**: [http://localhost:4000](http://localhost:4000)
+   - **Phone Controller**: [http://localhost:4000/controller](http://localhost:4000/controller)
 
-## Deployment
-This project is configured to be deployed as a static site. You can easily drag and drop the project folder into services like [Vercel](https://vercel.com/) or Netlify. 
+4. Run tests & linter:
+   ```bash
+   npm test
+   npm run lint
+   ```
 
-*(Note: The static assets are placed in the `assets/` directory to ensure smooth deployment with Vercel).*
+## Controls
+- **D-Pad / Arrow Keys**: Move bat across the crease.
+- **Enter / Tap / EMG Pinch**: Face delivery / serve.
+- **Phone Controller**: Hold smartphone like a handle; tilt and swing to hit shots.

@@ -10,6 +10,7 @@ const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
 const http = require('http');
+const zlib = require('zlib');
 const { execSync }        = require('child_process');
 const { WebSocketServer } = require('ws');
 
@@ -38,7 +39,8 @@ const LOCAL_IP = getLocalIP();
 // ── MIME types ────────────────────────────────────────────────────────────────
 const MIME = {
   '.html':'text/html', '.js':'application/javascript', '.css':'text/css',
-  '.glb':'model/gltf-binary', '.png':'image/png', '.jpg':'image/jpeg', '.ico':'image/x-icon',
+  '.glb':'model/gltf-binary', '.gltf':'model/gltf+json', '.bin':'application/octet-stream',
+  '.png':'image/png', '.jpg':'image/jpeg', '.ico':'image/x-icon',
 };
 
 const httpServer = http.createServer((req, res) => {
@@ -52,16 +54,47 @@ const httpServer = http.createServer((req, res) => {
   if (urlPath === '/' || urlPath === '/index.html') {
     urlPath = '/index.html';
   } else if (urlPath === '/controller' || urlPath === '/controller.html') {
-    urlPath = '/controller.html';
+    urlPath = '/public/controller.html';
   }
   const filePath = path.join(ROOT_DIR, urlPath);
   if (!filePath.startsWith(ROOT_DIR)) { res.writeHead(403); res.end('Forbidden'); return; }
 
   fs.readFile(filePath, (err, data) => {
     if (err) { res.writeHead(404); res.end('Not found: ' + urlPath); return; }
-    const mime = MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': mime, 'Access-Control-Allow-Origin': '*' });
-    res.end(data);
+    const ext = path.extname(filePath).toLowerCase();
+    const mime = MIME[ext] || 'application/octet-stream';
+    const acceptEncoding = req.headers['accept-encoding'] || '';
+
+    const headers = {
+      'Content-Type': mime,
+      'Access-Control-Allow-Origin': '*',
+      'Vary': 'Accept-Encoding'
+    };
+
+    // Long-lived caching for static assets (scripts, styles, 3D models)
+    if (ext === '.js' || ext === '.css' || ext === '.gltf' || ext === '.bin' || ext === '.png' || ext === '.jpg') {
+      headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+    } else {
+      headers['Cache-Control'] = 'no-cache';
+    }
+
+    // Gzip compression for text, code, and JSON/GLTF models
+    const compressable = ['.html', '.js', '.css', '.gltf', '.bin', '.json'].includes(ext);
+    if (compressable && acceptEncoding.includes('gzip')) {
+      headers['Content-Encoding'] = 'gzip';
+      zlib.gzip(data, (gErr, compressed) => {
+        if (gErr) {
+          res.writeHead(200, headers);
+          res.end(data);
+        } else {
+          res.writeHead(200, headers);
+          res.end(compressed);
+        }
+      });
+    } else {
+      res.writeHead(200, headers);
+      res.end(data);
+    }
   });
 });
 
@@ -89,9 +122,9 @@ function logSensorData(msg, relayedToGame) {
       lastLogTime = now;
     }
   } else if (msg.type === 'smash') {
-    console.log(`\n💥 [SENSOR EVENT] SMASH DETECTED! Wrist flick → [${statusTag}] 💥\n`);
+    console.log(`\n[SENSOR EVENT] SMASH DETECTED! Wrist flick -> [${statusTag}]\n`);
   } else if (msg.type === 'tap') {
-    console.log(`🏓 [SENSOR EVENT] SCREEN TAP -> Serve ball → [${statusTag}]`);
+    console.log(`[SENSOR EVENT] SCREEN TAP -> Serve ball -> [${statusTag}]`);
   }
 }
 
@@ -167,15 +200,15 @@ httpServer.on('error', (err) => {
 
 function onReady() {
   console.log('');
-  console.log('╔══════════════════════════════════════════════════════════════╗');
-  console.log('║               🏓  PingPong Server + Ngrok                     ║');
-  console.log('╠══════════════════════════════════════════════════════════════╣');
-  console.log(`║  🖥  Local Game  : http://localhost:${PORT}                       ║`);
-  console.log(`║  📱 Local Phone : http://${LOCAL_IP}:${PORT}/controller            ║`);
-  console.log('╠══════════════════════════════════════════════════════════════╣');
-  console.log('║  🚀 To expose with Ngrok (for valid HTTPS sensors):          ║');
-  console.log(`║     Run in a separate terminal: ngrok http ${PORT}             ║`);
-  console.log('╚══════════════════════════════════════════════════════════════╝');
+  console.log('----------------------------------------------------------------');
+  console.log('                 Cricket 3D Server + Ngrok                      ');
+  console.log('----------------------------------------------------------------');
+  console.log(`  Local Game  : http://localhost:${PORT}`);
+  console.log(`  Local Phone : http://${LOCAL_IP}:${PORT}/controller`);
+  console.log('----------------------------------------------------------------');
+  console.log('  To expose with Ngrok (for valid HTTPS sensors):               ');
+  console.log(`  Run in a separate terminal: ngrok http ${PORT}`);
+  console.log('----------------------------------------------------------------');
   console.log('');
 }
 

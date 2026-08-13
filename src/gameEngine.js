@@ -62,7 +62,7 @@ class GameEngine {
         this.batSpeed        = new THREE.Vector3();
         this.hitDistance     = 0.22;
 
-        this.subSteps        = 8;
+        this.subSteps        = 4;
         this.onEvent         = null;
         this.ui              = null;
         this.autoBowlTimer   = null;
@@ -134,7 +134,13 @@ class GameEngine {
         this._clearAutoBowl();
         if (this.gameOver) { this.resetGame(); return; }
         if (this.ballActive) return;
-        if (this.ui) { this.ui.message.innerText = ''; this.ui.message.classList.remove('pulse-anim'); }
+        if (this.ui && this.ui.message) {
+            this.ui.message.innerText = '';
+            this.ui.message.classList.remove('pulse-anim');
+            if (typeof this.ui.message.blur === 'function') {
+                this.ui.message.blur();
+            }
+        }
         this.bowl();
     }
 
@@ -253,10 +259,10 @@ class GameEngine {
 
         // UI hint
         const typeLabel = {
-            [DELIVERY.BOUNCER]  : '🔥 BOUNCER!',
-            [DELIVERY.YORKER]   : '⚡ YORKER!',
-            [DELIVERY.FULL_TOSS]: '🎾 FULL TOSS',
-            [DELIVERY.WIDE]     : '↔ WIDE BALL',
+            [DELIVERY.BOUNCER]  : 'BOUNCER!',
+            [DELIVERY.YORKER]   : 'YORKER!',
+            [DELIVERY.FULL_TOSS]: 'FULL TOSS',
+            [DELIVERY.WIDE]     : 'WIDE BALL',
         };
         if (typeLabel[this.deliveryType] && this.ui) {
             this.ui.message.innerText = typeLabel[this.deliveryType];
@@ -271,7 +277,7 @@ class GameEngine {
             this.fireEvent('matchWin', { runs: this.runs, target: this.target, wickets: this.wickets });
             const wktsLeft = this.maxWickets - this.wickets;
             if (this.ui) {
-                this.ui.message.innerText = `🎉 TARGET CHASED! WON BY ${wktsLeft} WKT${wktsLeft !== 1 ? 'S' : ''}!`;
+                this.ui.message.innerText = `TARGET CHASED! WON BY ${wktsLeft} WKT${wktsLeft !== 1 ? 'S' : ''}!`;
                 this.ui.message.classList.add('pulse-anim');
             }
             return true;
@@ -283,7 +289,7 @@ class GameEngine {
             this.fireEvent('matchLose', { reason: 'allOut' });
             const needed = this.target - this.runs;
             if (this.ui) {
-                this.ui.message.innerText = `💥 ALL OUT! NEEDED ${needed} MORE RUN${needed > 1 ? 'S' : ''}`;
+                this.ui.message.innerText = `ALL OUT! NEEDED ${needed} MORE RUN${needed > 1 ? 'S' : ''}`;
                 this.ui.message.classList.add('pulse-anim');
             }
             return true;
@@ -295,7 +301,7 @@ class GameEngine {
             this.fireEvent('matchLose', { reason: 'overFinished' });
             const needed = this.target - this.runs;
             if (this.ui) {
-                this.ui.message.innerText = `⌛ OVER FINISHED! NEEDED ${needed} MORE RUN${needed > 1 ? 'S' : ''}`;
+                this.ui.message.innerText = `OVER FINISHED! NEEDED ${needed} MORE RUN${needed > 1 ? 'S' : ''}`;
                 this.ui.message.classList.add('pulse-anim');
             }
             return true;
@@ -319,7 +325,7 @@ class GameEngine {
         this.legalBalls++;
         this.updateUI();
         this.fireEvent('wicket', { wickets: this.wickets, reason });
-        const wMsg = reason === 'caught' ? '🧤 CAUGHT!' : reason === 'lbw' ? 'LBW!' : 'BOWLED!';
+        const wMsg = reason === 'caught' ? 'CAUGHT!' : reason === 'lbw' ? 'LBW!' : 'BOWLED!';
         this._checkGameStatus(wMsg);
     }
 
@@ -330,7 +336,7 @@ class GameEngine {
         this.updateUI();
         this.fireEvent('wide', { runs: 1, total: this.runs });
         if (this.ballMesh) this.ballMesh.position.set(0, -10, 0);
-        this._checkGameStatus('↔ WIDE BALL (+1 RUN)');
+        this._checkGameStatus('WIDE BALL (+1 RUN)');
     }
 
     onRuns(r) {
@@ -340,7 +346,7 @@ class GameEngine {
         this.legalBalls++;
         this.updateUI();
         this.fireEvent('runs', { runs: r, total: this.runs });
-        const text = r === 6 ? '🚀 SIX!' : r === 4 ? '⚡ FOUR!' : `+${r} RUN${r > 1 ? 'S' : ''}`;
+        const text = r === 6 ? 'SIX!' : r === 4 ? 'FOUR!' : `+${r} RUN${r > 1 ? 'S' : ''}`;
         this._checkGameStatus(text);
     }
 
@@ -569,16 +575,6 @@ class GameEngine {
         // Clear swing / spin effects after bat contact
         this.ballSpin.set(0, 0, 0);
         this.swingAccel.set(0, 0, 0);
-    }
-
-    // ── Run calculation based on ball position and speed ─────────────────────
-    _calcRuns(pos) {
-        const speed  = this.ballVelocity.length();
-        const height = pos.y;
-        if (height > 2.0 || (this.isSmashing && speed > 7.0)) return 6;
-        if (speed > 4.5 || Math.abs(pos.x) > 2.5)              return 4;
-        if (speed > 2.8)                                         return 2;
-        return 1;
     }
 
     _onDotBall() {

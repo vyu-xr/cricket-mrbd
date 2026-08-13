@@ -1,4 +1,4 @@
-import { gameEngine } from './gameEngine';
+import { gameEngine } from '../src/gameEngine.js';
 import * as THREE from 'three';
 
 describe('Cricket GameEngine 1-Over Target Chase Logic', () => {
