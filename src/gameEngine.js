@@ -5,10 +5,10 @@ const GRAVITY            = -14.0;        // realistic overarm delivery trajector
 const BALL_RADIUS        = 0.055;
 const PITCH_RESTITUTION  = 0.48;         // energy preserved on bounce (tuned for realistic stump height)
 const PITCH_FRICTION_X   = 0.78;         // lateral friction on pitch bounce
-const PITCH_FRICTION_Z   = 0.80;         // along-pitch friction on bounce
+const PITCH_FRICTION_Z   = 0.92;         // along-pitch friction on bounce
 const MIN_BOUNCE_VY      = 0.20;         // below this vertical speed → roll instead of bounce
 const ROLL_DECEL         = 3.5;          // rolling deceleration (units/s²)
-const AIR_DRAG_PER_SEC   = 0.04;         // fraction of horizontal speed lost per second in air
+const AIR_DRAG_PER_SEC   = 0.015;        // fraction of horizontal speed lost per second in air
 const SWING_MAX_ACCEL    = 0.40;         // max lateral swing acceleration (units/s²)
 const SPIN_DECAY         = 0.55;         // how much spin survives each bounce
 
@@ -171,7 +171,7 @@ class GameEngine {
         const spawnX  = 0.0; // Strictly centered spawn
         const spawnZ  = this.bowlerZ + 0.05;
         const pitchLen = this.stumpsZ - spawnZ;   // total pitch length in Z
-        const baseSpeed = 5.2 + this.level * 0.35; // slowed delivery for better reaction time
+        const baseSpeed = 8.5 + this.level * 0.40; // realistic delivery speed carry-through
 
         // Target line with 0.20 spread on off and leg sides:
         const cricketLines = [0.20, 0.10, 0.0, -0.10, -0.20];
