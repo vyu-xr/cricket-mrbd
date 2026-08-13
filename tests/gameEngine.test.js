@@ -76,15 +76,12 @@ describe('Cricket GameEngine 1-Over Target Chase Logic', () => {
         expect(gameEngine.gameOver).toBe(true);
     });
 
-    test('Schedules auto-bowling timer on non-terminal delivery outcome', () => {
-        jest.useFakeTimers();
+    test('Waits for player prompt before delivering next ball on non-terminal delivery outcome', () => {
         gameEngine.target = 24;
         gameEngine.onRuns(4);
-        expect(gameEngine.autoBowlTimer).not.toBeNull();
-        jest.advanceTimersByTime(1800);
+        expect(gameEngine.ballActive).toBe(false);
+        gameEngine.resetBall();
         expect(gameEngine.ballActive).toBe(true);
-        gameEngine._clearAutoBowl();
-        jest.useRealTimers();
     });
 
     test('Allows unconstrained ball flight out of bounds post-hit', () => {

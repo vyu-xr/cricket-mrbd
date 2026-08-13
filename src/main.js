@@ -440,7 +440,6 @@ function hideDialog() {
             hideDialog();
             if (engineInitialized) {
                 gameEngine.resetGame();
-                gameEngine.resetBall();
             }
         });
     }

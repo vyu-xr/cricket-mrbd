@@ -1,13 +1,13 @@
-const CACHE = 'cricket-3d-v12';
+const CACHE = 'cricket-3d-v13';
 const FILES = [
-  '/',
-  '/index.html',
-  '/src/style.css',
-  '/src/main.js',
-  '/src/gameEngine.js',
-  '/public/controller.html',
-  '/assets/models/bat.gltf',
-  '/assets/models/bat.bin'
+  './',
+  './index.html',
+  './src/style.css',
+  './src/main.js',
+  './src/gameEngine.js',
+  './public/controller.html',
+  './assets/models/bat.gltf',
+  './assets/models/bat.bin'
 ];
 
 self.addEventListener('install', (e) => {
@@ -34,6 +34,6 @@ self.addEventListener('fetch', (e) => {
         caches.open(CACHE).then((cache) => cache.put(e.request, clone));
       }
       return netRes;
-    }).catch(() => caches.match(e.request).then((cached) => cached || caches.match('/index.html')))
+    }).catch(() => caches.match(e.request).then((cached) => cached || caches.match('./index.html')))
   );
 });

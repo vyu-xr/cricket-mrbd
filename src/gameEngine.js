@@ -98,7 +98,7 @@ class GameEngine {
         if (this.ballMesh) this.ballMesh.position.set(0, -10, 0);
         this.ballActive = false;
         if (this.ui && this.ui.message) {
-            this.ui.message.innerText = `CHASE ${this.target} RUNS IN 6 BALLS!`;
+            this.ui.message.innerText = `CHASE ${this.target} RUNS IN 6 BALLS! CLICK TO FACE`;
             this.ui.message.classList.add('pulse-anim');
         }
         this.fireEvent('resetGame', { target: this.target });
@@ -120,14 +120,8 @@ class GameEngine {
     }
 
     _scheduleAutoBowl(delayMs = 1500) {
+        // Disabled auto-bowl so deliveries only start when the wearer is ready
         this._clearAutoBowl();
-        if (this.gameOver) return;
-        this.autoBowlTimer = setTimeout(() => {
-            this.autoBowlTimer = null;
-            if (!this.gameOver && !this.ballActive) {
-                this.bowl();
-            }
-        }, delayMs);
     }
 
     resetBall() {
@@ -310,10 +304,9 @@ class GameEngine {
         if (this.ui && lastEventText) {
             const ballsLeft = this.maxBalls - this.legalBalls;
             const needed = Math.max(0, this.target - this.runs);
-            this.ui.message.innerText = `${lastEventText} | NEED ${needed} IN ${ballsLeft} BALL${ballsLeft !== 1 ? 'S' : ''}`;
+            this.ui.message.innerText = `${lastEventText} | NEED ${needed} IN ${ballsLeft} BALL${ballsLeft !== 1 ? 'S' : ''} — CLICK TO FACE`;
             this.ui.message.classList.add('pulse-anim');
         }
-        this._scheduleAutoBowl(1500);
         return false;
     }
 
