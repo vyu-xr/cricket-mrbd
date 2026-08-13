@@ -457,7 +457,7 @@ let batBaseY = 0, batTargetY = 0;
 
 const BAT_LIMIT_X = 0.6;
 const BAT_LIMIT_Y = 0.5;
-const BAT_SPEED   = 0.025; // fine granular speed for smooth continuous movement
+const BAT_SPEED   = 0.08; // fast continuous movement speed
 
 let phoneActive = false;
 let phoneRotX = 0, phoneRotY = 0, phoneRotZ = 0;
@@ -527,7 +527,7 @@ loader.load(
 
 // ── Keyboard & D-Pad Navigation (MRBD Specs) ──────────────────────────────────
 const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
-const DPAD_STEP = 0.06; // fine granular step per D-pad tap (6cm per step)
+const DPAD_STEP = 0.14; // snappy D-pad step per tap (14cm per step)
 
 function getFocusableElements() {
     const visibleDialog  = document.querySelector('#exclusive-dialog:not(.hidden)');
@@ -930,7 +930,7 @@ function animate(currentTime = 0) {
             if (keys.ArrowUp)    batTargetY = Math.min(batBaseY + BAT_LIMIT_Y, batTargetY + BAT_SPEED);
             if (keys.ArrowDown)  batTargetY = Math.max(0.0, batTargetY - BAT_SPEED);
         }
-        const lerpFactor = 0.28; // fluid granular interpolation
+        const lerpFactor = 0.65; // fast, responsive bat position tracking
         const newX = bat.position.x + (batTargetX - bat.position.x) * lerpFactor;
         const newY = bat.position.y + (batTargetY - bat.position.y) * lerpFactor;
         gameEngine.setPaddlePosition(newX, newY, bat.position.z);
