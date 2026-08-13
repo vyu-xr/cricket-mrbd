@@ -262,6 +262,40 @@ function updateTrail() {
     }
 }
 
+// ── Ball Pitch Shadow ────────────────────────────────────────────────────────
+const shadowGeo = new THREE.RingGeometry(0.01, 0.085, 16);
+const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.45, side: THREE.DoubleSide });
+const ballShadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+ballShadowMesh.rotation.x = Math.PI / 2;
+ballShadowMesh.position.y = 0.021;
+ballShadowMesh.visible = false;
+scene.add(ballShadowMesh);
+
+function updateBallShadow() {
+    if (!engineInitialized || !gameEngine.ballActive) {
+        ballShadowMesh.visible = false;
+        return;
+    }
+    ballShadowMesh.visible = true;
+    ballShadowMesh.position.x = ballMesh.position.x;
+    ballShadowMesh.position.z = ballMesh.position.z;
+    const heightOffPitch = Math.max(0, ballMesh.position.y - 0.055);
+    const shadowScale = Math.max(0.35, 1.2 - heightOffPitch * 0.45);
+    ballShadowMesh.scale.setScalar(shadowScale);
+    shadowMat.opacity = Math.max(0.08, 0.50 - heightOffPitch * 0.28);
+}
+
+// ── Pitch Bounce Target Indicator ────────────────────────────────────────────
+const targetGeo = new THREE.RingGeometry(0.10, 0.16, 24);
+const targetMat = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
+const pitchTargetMarker = new THREE.Mesh(targetGeo, targetMat);
+pitchTargetMarker.rotation.x = Math.PI / 2;
+pitchTargetMarker.position.y = 0.022;
+pitchTargetMarker.visible = false;
+scene.add(pitchTargetMarker);
+
+let pitchTargetLife = 0;
+
 // ── Hit Particles (Zero-Allocation Object Pool) ─────────────────────────────
 const MAX_HIT_PARTICLES = 32;
 const hitParticlePool   = [];
@@ -361,6 +395,12 @@ function handleGameEvent(eventName, data) {
                 overlay.classList.add('active');
             }
         }
+    } else if (eventName === 'bowlTarget') {
+        pitchTargetMarker.position.x = data.x;
+        pitchTargetMarker.position.z = data.z;
+        pitchTargetMarker.visible = true;
+        pitchTargetLife = 1.0;
+        targetMat.opacity = 0.85;
     } else if (eventName === 'matchWin') {
         showDialog('win', data);
     } else if (eventName === 'matchLose') {
@@ -457,7 +497,7 @@ let batBaseY = 0, batTargetY = 0;
 
 const BAT_LIMIT_X = 0.6;
 const BAT_LIMIT_Y = 0.5;
-const BAT_SPEED   = 0.25; // max continuous speed for instant glasses responsiveness
+const BAT_SPEED   = 0.10; // smooth continuous movement speed
 
 let phoneActive = false;
 let phoneRotX = 0, phoneRotY = 0, phoneRotZ = 0;
@@ -527,7 +567,7 @@ loader.load(
 
 // ── Keyboard & D-Pad Navigation (MRBD Specs) ──────────────────────────────────
 const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
-const DPAD_STEP = 0.45; // instant stance shift per single glasses swipe (45cm per swipe)
+const DPAD_STEP = 0.12; // smooth D-pad step per tap (12cm per step)
 
 function getFocusableElements() {
     const visibleDialog  = document.querySelector('#exclusive-dialog:not(.hidden)');
@@ -893,36 +933,36 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// ── Animation Loop (Throttled to 30Hz for Meta Ray-Ban Display Panel) ───────────
+// ── Animation Loop (Smooth Pacing & Spring Bat Motion) ───────────────────────────
 const clock = new THREE.Clock();
-const TARGET_FPS = 30;
-const FRAME_INTERVAL = 1000 / TARGET_FPS; // ~33.33ms
-let lastFrameTime = 0;
 let shellHidden = false;
 
-function animate(currentTime = 0) {
+function animate() {
     requestAnimationFrame(animate);
 
-    const delta = currentTime - lastFrameTime;
-    if (delta < FRAME_INTERVAL - 2) {
-        return; // Throttle renders to 30Hz panel refresh budget
-    }
-
-    lastFrameTime = currentTime - (delta % FRAME_INTERVAL);
-    const dt = Math.min(delta / 1000, 0.1);
+    const delta = clock.getDelta();
+    const dt = Math.min(delta, 0.05);
     const t  = clock.getElapsedTime();
 
     if (engineInitialized) {
         gameEngine.update(dt);
         updateTrail();
+        updateBallShadow();
     }
     updateHitParticles(dt);
     updateStumps(dt);
 
+    // Fade pitch landing target marker
+    if (pitchTargetLife > 0) {
+        pitchTargetLife -= dt * 1.5;
+        targetMat.opacity = Math.max(0, pitchTargetLife * 0.85);
+        if (pitchTargetLife <= 0) pitchTargetMarker.visible = false;
+    }
+
     // Spin particles slowly
     particles.rotation.y = t * 0.025;
 
-    // ── Bat movement ──────────────────────────────────────────────────────────
+    // ── Bat movement (Critically Damped Spring Smoothing) ─────────────────────
     if (bat && engineInitialized) {
         if (!phoneActive) {
             if (keys.ArrowLeft)  batTargetX = Math.max(batBaseX - BAT_LIMIT_X, batTargetX - BAT_SPEED);
@@ -930,9 +970,9 @@ function animate(currentTime = 0) {
             if (keys.ArrowUp)    batTargetY = Math.min(batBaseY + BAT_LIMIT_Y, batTargetY + BAT_SPEED);
             if (keys.ArrowDown)  batTargetY = Math.max(0.0, batTargetY - BAT_SPEED);
         }
-        const lerpFactor = 1.0; // 1:1 instant snappy bat position tracking (zero-lag)
-        const newX = bat.position.x + (batTargetX - bat.position.x) * lerpFactor;
-        const newY = bat.position.y + (batTargetY - bat.position.y) * lerpFactor;
+        const springFactor = 1 - Math.exp(-24 * dt); // zero-lag start with silky smooth decay
+        const newX = bat.position.x + (batTargetX - bat.position.x) * springFactor;
+        const newY = bat.position.y + (batTargetY - bat.position.y) * springFactor;
         gameEngine.setPaddlePosition(newX, newY, bat.position.z);
 
         if (phoneActive) {
@@ -942,9 +982,9 @@ function animate(currentTime = 0) {
             bat.rotation.z = bat.rotation.z + (phoneRotZ - bat.rotation.z) * lerpSpeed;
         } else {
             const stanceTiltZ = -((newX - batBaseX) / BAT_LIMIT_X) * 0.18;
-            bat.rotation.x = bat.rotation.x + (-Math.PI / 6 - bat.rotation.x) * 0.06;
-            bat.rotation.y = bat.rotation.y + (Math.PI - bat.rotation.y) * 0.06;
-            bat.rotation.z = bat.rotation.z + (stanceTiltZ - bat.rotation.z) * 0.12;
+            bat.rotation.x = bat.rotation.x + (-Math.PI / 6 - bat.rotation.x) * 0.10;
+            bat.rotation.y = bat.rotation.y + (Math.PI - bat.rotation.y) * 0.10;
+            bat.rotation.z = bat.rotation.z + (stanceTiltZ - bat.rotation.z) * 0.14;
         }
     }
 

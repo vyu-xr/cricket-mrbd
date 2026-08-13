@@ -3,12 +3,12 @@ import * as THREE from 'three';
 // ── Cricket physics constants ────────────────────────────────────────────────
 const GRAVITY            = -14.0;        // realistic overarm delivery trajectory
 const BALL_RADIUS        = 0.055;
-const PITCH_RESTITUTION  = 0.48;         // energy preserved on bounce (tuned for realistic stump height)
+const PITCH_RESTITUTION  = 0.50;         // energy preserved on bounce (tuned for waist/stump height carry)
 const PITCH_FRICTION_X   = 0.78;         // lateral friction on pitch bounce
-const PITCH_FRICTION_Z   = 0.99;         // along-pitch friction on bounce (zero loss for ultra-slow deliveries)
+const PITCH_FRICTION_Z   = 0.95;         // along-pitch friction on bounce
 const MIN_BOUNCE_VY      = 0.20;         // below this vertical speed → roll instead of bounce
 const ROLL_DECEL         = 3.5;          // rolling deceleration (units/s²)
-const AIR_DRAG_PER_SEC   = 0.001;        // near zero air drag for slow deliveries
+const AIR_DRAG_PER_SEC   = 0.010;        // air drag per second
 const SWING_MAX_ACCEL    = 0.40;         // max lateral swing acceleration (units/s²)
 const SPIN_DECAY         = 0.55;         // how much spin survives each bounce
 
@@ -190,7 +190,7 @@ class GameEngine {
         const spawnX  = 0.0; // Strictly centered spawn
         const spawnZ  = this.bowlerZ + 0.05;
         const pitchLen = this.stumpsZ - spawnZ;   // total pitch length in Z
-        const baseSpeed = 2.8 + this.level * 0.15; // ultra-slow delivery speed (~2.0s flight time)
+        const baseSpeed = 5.2 + this.level * 0.30; // Golden sweet spot speed (~1.0s flight time)
 
         // Target line with 0.20 spread on off and leg sides:
         const cricketLines = [0.20, 0.10, 0.0, -0.10, -0.20];
@@ -201,6 +201,7 @@ class GameEngine {
         const dx = targetX - spawnX;
 
         let spawnY, velX, velY, velZ;
+        let bounceZ = this.stumpsZ - pitchLen * 0.42;
 
         // Helper: compute Y velocity to arc from spawnY to landing at pitchY + BALL_RADIUS
         const arcY = (sy, dz, vHz) => {
@@ -213,8 +214,7 @@ class GameEngine {
 
         switch (this.deliveryType) {
             case DELIVERY.GOOD_LENGTH: {
-                // Pitches ~40-50% from batsman end
-                const bounceZ = this.stumpsZ - pitchLen * 0.42;
+                bounceZ = this.stumpsZ - pitchLen * 0.42;
                 const dz = bounceZ - spawnZ;
                 velZ = baseSpeed * 0.92;
                 velX = (dx / dz) * velZ;
@@ -222,9 +222,8 @@ class GameEngine {
                 break;
             }
             case DELIVERY.BOUNCER: {
-                // Pitches short — rises to chest/head height
                 spawnY = this.pitchY + 0.90;
-                const bounceZ = this.stumpsZ - pitchLen * 0.62;
+                bounceZ = this.stumpsZ - pitchLen * 0.62;
                 const dz = bounceZ - spawnZ;
                 velZ = baseSpeed * 0.96;
                 velX = (dx / dz) * velZ;
@@ -232,8 +231,7 @@ class GameEngine {
                 break;
             }
             case DELIVERY.YORKER: {
-                // Pitches right at batsman's feet
-                const bounceZ = this.stumpsZ - 0.18;
+                bounceZ = this.stumpsZ - 0.18;
                 const dz = bounceZ - spawnZ;
                 velZ = baseSpeed * 0.98;
                 velX = (dx / dz) * velZ;
@@ -241,7 +239,7 @@ class GameEngine {
                 break;
             }
             case DELIVERY.FULL_TOSS: {
-                // Reaches batsman at waist height (0.45m) with direct trajectory
+                bounceZ = this.stumpsZ;
                 const dz = pitchLen;
                 velZ = baseSpeed * 1.05;
                 velX = (dx / dz) * velZ;
@@ -250,7 +248,7 @@ class GameEngine {
                 break;
             }
             case DELIVERY.WIDE: {
-                const bounceZ = this.stumpsZ - pitchLen * 0.44;
+                bounceZ = this.stumpsZ - pitchLen * 0.44;
                 const dz = bounceZ - spawnZ;
                 velZ = baseSpeed * 0.90;
                 velX = (dx / dz) * velZ;
@@ -261,6 +259,9 @@ class GameEngine {
 
         this.ballMesh.position.set(spawnX, spawnY, spawnZ);
         this.ballVelocity.set(velX, velY, velZ);
+
+        // Emit target landing spot event for pitch indicator
+        this.onEvent('bowlTarget', { x: targetX, z: bounceZ, type: this.deliveryType });
 
         // In-swing / out-swing lateral drift (scales with level)
         const swingMag = (Math.random() * 2 - 1) * SWING_MAX_ACCEL * Math.min(this.level * 0.22, 1.0);
