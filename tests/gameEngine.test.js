@@ -35,7 +35,7 @@ describe('Cricket GameEngine 1-Over Target Chase Logic', () => {
     });
 
     test('Bowler delivers ball on resetBall', () => {
-        gameEngine.resetBall();
+        gameEngine.resetBall(0);
         expect(gameEngine.ballActive).toBe(true);
         expect(gameEngine.ballVelocity.z).toBeGreaterThan(1.0);
     });
@@ -80,7 +80,7 @@ describe('Cricket GameEngine 1-Over Target Chase Logic', () => {
         gameEngine.target = 24;
         gameEngine.onRuns(4);
         expect(gameEngine.ballActive).toBe(false);
-        gameEngine.resetBall();
+        gameEngine.resetBall(0);
         expect(gameEngine.ballActive).toBe(true);
     });
 
