@@ -421,7 +421,10 @@ function showDialog(type, data = {}) {
     }
 
     dialog.classList.remove('hidden');
-    setTimeout(() => btn.focus(), 50);
+    if (btn) {
+        btn.focus();
+        setTimeout(() => btn.focus(), 50);
+    }
 }
 
 function hideDialog() {
@@ -436,10 +439,12 @@ function hideDialog() {
 (function initDialogEvents() {
     const btn = document.getElementById('dialog-btn');
     if (btn) {
+        btn.focus();
         btn.addEventListener('click', () => {
             hideDialog();
             if (engineInitialized) {
                 gameEngine.resetGame();
+                gameEngine.resetBall();
             }
         });
     }
@@ -622,6 +627,18 @@ document.addEventListener('keydown', (e) => {
 
     // EMG Pinch / Enter activation
     if (isActionKey(e)) {
+        if (isOverlayOpen) {
+            const dialogBtn = document.getElementById('dialog-btn');
+            const active = document.activeElement;
+            if (active && active.classList && active.classList.contains('focusable') && typeof active.click === 'function') {
+                active.click();
+            } else if (dialogBtn && dialog && !dialog.classList.contains('hidden')) {
+                dialogBtn.click();
+            }
+            e.preventDefault();
+            return;
+        }
+
         const active = document.activeElement;
         if (active && active !== document.body && typeof active.click === 'function') {
             active.click();
