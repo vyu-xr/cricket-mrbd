@@ -457,7 +457,7 @@ let batBaseY = 0, batTargetY = 0;
 
 const BAT_LIMIT_X = 0.6;
 const BAT_LIMIT_Y = 0.5;
-const BAT_SPEED   = 0.18; // ultra-fast continuous movement speed
+const BAT_SPEED   = 0.25; // max continuous speed for instant glasses responsiveness
 
 let phoneActive = false;
 let phoneRotX = 0, phoneRotY = 0, phoneRotZ = 0;
@@ -527,7 +527,7 @@ loader.load(
 
 // ── Keyboard & D-Pad Navigation (MRBD Specs) ──────────────────────────────────
 const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
-const DPAD_STEP = 0.22; // ultra-snappy D-pad step per tap (22cm per step)
+const DPAD_STEP = 0.45; // instant stance shift per single glasses swipe (45cm per swipe)
 
 function getFocusableElements() {
     const visibleDialog  = document.querySelector('#exclusive-dialog:not(.hidden)');
